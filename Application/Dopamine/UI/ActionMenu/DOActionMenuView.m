@@ -18,10 +18,24 @@
     {
         [self setDelegate:delegate];
         [self setActions:actions];
-        self.backgroundColor = [DOThemeManager menuColorWithAlpha:1.0];
-        self.layer.cornerRadius = 14;
+        self.backgroundColor = [UIColor colorWithWhite:0.08 alpha:0.42];
+        self.layer.cornerRadius = 26;
         self.layer.masksToBounds = YES;
         self.layer.cornerCurve = kCACornerCurveContinuous;
+        self.layer.borderWidth = 1.0;
+        self.layer.borderColor = [UIColor colorWithRed:0.35 green:1.0 blue:0.86 alpha:0.20].CGColor;
+
+        UIBlurEffect *blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemUltraThinMaterialDark];
+        UIVisualEffectView *blurView = [[UIVisualEffectView alloc] initWithEffect:blurEffect];
+        blurView.userInteractionEnabled = NO;
+        blurView.translatesAutoresizingMaskIntoConstraints = NO;
+        [self insertSubview:blurView atIndex:0];
+        [NSLayoutConstraint activateConstraints:@[
+            [blurView.leadingAnchor constraintEqualToAnchor:self.leadingAnchor],
+            [blurView.trailingAnchor constraintEqualToAnchor:self.trailingAnchor],
+            [blurView.topAnchor constraintEqualToAnchor:self.topAnchor],
+            [blurView.bottomAnchor constraintEqualToAnchor:self.bottomAnchor],
+        ]];
     }
     return self;
 }
