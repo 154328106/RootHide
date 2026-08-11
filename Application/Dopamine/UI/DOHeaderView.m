@@ -37,16 +37,23 @@
         // upstream logo asset and remains readable over every glass background.
         UILabel *wordmark = [[UILabel alloc] init];
         wordmark.translatesAutoresizingMaskIntoConstraints = NO;
-        wordmark.text = @"Dopamine RH";
-        wordmark.textColor = [UIColor whiteColor];
-        wordmark.font = [UIFont systemFontOfSize:48 weight:UIFontWeightBold];
+        NSString *wordmarkText = @"Dopamine // RH";
+        wordmark.attributedText = [[NSAttributedString alloc] initWithString:wordmarkText attributes:@{
+            NSFontAttributeName: [UIFont monospacedSystemFontOfSize:36 weight:UIFontWeightSemibold],
+            NSForegroundColorAttributeName: [UIColor colorWithRed:0.80 green:0.94 blue:1.0 alpha:1.0],
+            NSKernAttributeName: @0.8,
+        }];
         wordmark.adjustsFontSizeToFitWidth = YES;
-        wordmark.minimumScaleFactor = 0.72;
+        wordmark.minimumScaleFactor = 0.76;
         wordmark.numberOfLines = 1;
+        wordmark.layer.shadowColor = [UIColor colorWithRed:0.18 green:0.68 blue:1.0 alpha:1.0].CGColor;
+        wordmark.layer.shadowOffset = CGSizeZero;
+        wordmark.layer.shadowRadius = 12;
+        wordmark.layer.shadowOpacity = 0.42;
         [stackView addArrangedSubview:wordmark];
 
         [NSLayoutConstraint activateConstraints:@[
-            [wordmark.heightAnchor constraintEqualToConstant:58],
+            [wordmark.heightAnchor constraintEqualToConstant:46],
             [wordmark.widthAnchor constraintLessThanOrEqualToAnchor:self.widthAnchor],
         ]];
 
