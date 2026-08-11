@@ -37,23 +37,26 @@
         // upstream logo asset and remains readable over every glass background.
         UILabel *wordmark = [[UILabel alloc] init];
         wordmark.translatesAutoresizingMaskIntoConstraints = NO;
-        NSString *wordmarkText = @"Dopamine // RH";
+        NSString *wordmarkText = @"Dopamine RH";
+        UIFont *baseFont = [UIFont systemFontOfSize:30 weight:UIFontWeightSemibold];
+        UIFontDescriptor *roundedDescriptor = [baseFont.fontDescriptor fontDescriptorWithDesign:UIFontDescriptorSystemDesignRounded];
+        UIFont *wordmarkFont = roundedDescriptor ? [UIFont fontWithDescriptor:roundedDescriptor size:30] : baseFont;
         wordmark.attributedText = [[NSAttributedString alloc] initWithString:wordmarkText attributes:@{
-            NSFontAttributeName: [UIFont monospacedSystemFontOfSize:36 weight:UIFontWeightSemibold],
-            NSForegroundColorAttributeName: [UIColor colorWithRed:0.80 green:0.94 blue:1.0 alpha:1.0],
-            NSKernAttributeName: @0.8,
+            NSFontAttributeName: wordmarkFont,
+            NSForegroundColorAttributeName: [UIColor colorWithRed:0.86 green:0.96 blue:1.0 alpha:1.0],
+            NSKernAttributeName: @0.15,
         }];
         wordmark.adjustsFontSizeToFitWidth = YES;
-        wordmark.minimumScaleFactor = 0.76;
+        wordmark.minimumScaleFactor = 0.82;
         wordmark.numberOfLines = 1;
-        wordmark.layer.shadowColor = [UIColor colorWithRed:0.18 green:0.68 blue:1.0 alpha:1.0].CGColor;
+        wordmark.layer.shadowColor = [UIColor colorWithRed:0.20 green:0.65 blue:1.0 alpha:1.0].CGColor;
         wordmark.layer.shadowOffset = CGSizeZero;
-        wordmark.layer.shadowRadius = 12;
-        wordmark.layer.shadowOpacity = 0.42;
+        wordmark.layer.shadowRadius = 8;
+        wordmark.layer.shadowOpacity = 0.30;
         [stackView addArrangedSubview:wordmark];
 
         [NSLayoutConstraint activateConstraints:@[
-            [wordmark.heightAnchor constraintEqualToConstant:46],
+            [wordmark.heightAnchor constraintEqualToConstant:38],
             [wordmark.widthAnchor constraintLessThanOrEqualToAnchor:self.widthAnchor],
         ]];
 
