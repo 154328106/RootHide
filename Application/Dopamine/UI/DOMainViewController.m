@@ -35,9 +35,9 @@
 
     self.personalGradient = [CAGradientLayer layer];
     self.personalGradient.colors = @[
-        (id)[UIColor colorWithRed:0.015 green:0.075 blue:0.095 alpha:1.0].CGColor,
-        (id)[UIColor colorWithRed:0.015 green:0.25 blue:0.24 alpha:0.96].CGColor,
-        (id)[UIColor colorWithRed:0.01 green:0.055 blue:0.075 alpha:1.0].CGColor,
+        (id)[UIColor colorWithRed:0.025 green:0.075 blue:0.16 alpha:1.0].CGColor,
+        (id)[UIColor colorWithRed:0.055 green:0.38 blue:0.48 alpha:0.96].CGColor,
+        (id)[UIColor colorWithRed:0.12 green:0.10 blue:0.30 alpha:1.0].CGColor,
     ];
     self.personalGradient.locations = @[@0.0, @0.48, @1.0];
     self.personalGradient.startPoint = CGPointMake(0.0, 0.0);
@@ -95,7 +95,6 @@
     //Header
     DOHeaderView *headerView = [[DOHeaderView alloc] initWithImage: [UIImage imageNamed:@"Dopamine"] subtitles: @[
         [DOGlobalAppearance mainSubtitleString:[[DOEnvironmentManager sharedManager] versionSupportString]],
-        [DOGlobalAppearance secondarySubtitleString:@"RootHide · landa + Titan · 私人定制版"],
     ]];
     
     [stackView addArrangedSubview:headerView];
