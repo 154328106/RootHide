@@ -18,18 +18,18 @@
     {
         [self setDelegate:delegate];
         [self setActions:actions];
-        self.backgroundColor = [UIColor colorWithRed:0.58 green:0.82 blue:1.0 alpha:0.10];
+        self.backgroundColor = [UIColor colorWithRed:0.08 green:0.34 blue:0.58 alpha:0.16];
         self.layer.cornerRadius = 28;
         self.layer.masksToBounds = YES;
         self.layer.cornerCurve = kCACornerCurveContinuous;
         self.layer.borderWidth = 1.15;
-        self.layer.borderColor = [UIColor colorWithRed:0.80 green:0.94 blue:1.0 alpha:0.48].CGColor;
+        self.layer.borderColor = [UIColor colorWithRed:0.64 green:0.88 blue:1.0 alpha:0.40].CGColor;
 
-        UIBlurEffect *blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemUltraThinMaterialLight];
+        UIBlurEffect *blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemUltraThinMaterialDark];
         UIVisualEffectView *blurView = [[UIVisualEffectView alloc] initWithEffect:blurEffect];
         blurView.userInteractionEnabled = NO;
         blurView.translatesAutoresizingMaskIntoConstraints = NO;
-        blurView.contentView.backgroundColor = [UIColor colorWithRed:0.64 green:0.86 blue:1.0 alpha:0.08];
+        blurView.contentView.backgroundColor = [UIColor colorWithRed:0.12 green:0.52 blue:0.82 alpha:0.16];
         [self insertSubview:blurView atIndex:0];
         [NSLayoutConstraint activateConstraints:@[
             [blurView.leadingAnchor constraintEqualToAnchor:self.leadingAnchor],
