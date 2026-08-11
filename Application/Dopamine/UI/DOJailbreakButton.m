@@ -17,12 +17,12 @@
 {
     if (self = [super init])
     {
-        self.backgroundColor = [UIColor colorWithRed:0.12 green:0.72 blue:0.61 alpha:0.96];
+        self.backgroundColor = [UIColor colorWithRed:0.18 green:0.62 blue:0.96 alpha:0.88];
         self.layer.cornerRadius = 22;
         self.layer.masksToBounds = YES;
         self.layer.cornerCurve = kCACornerCurveContinuous;
         self.layer.borderWidth = 1.0;
-        self.layer.borderColor = [UIColor colorWithRed:0.65 green:1.0 blue:0.92 alpha:0.42].CGColor;
+        self.layer.borderColor = [UIColor colorWithWhite:1.0 alpha:0.46].CGColor;
         self.translatesAutoresizingMaskIntoConstraints = NO;
 
         self.button = [DOActionMenuButton buttonWithAction:actions chevron:NO];
@@ -182,7 +182,7 @@
     if (enabled) {
         self.alpha = 1.0;
     } else {
-        self.alpha = 0.7;
+        self.alpha = 0.86;
     }
 }
 
