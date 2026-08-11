@@ -18,14 +18,14 @@
     {
         [self setDelegate:delegate];
         [self setActions:actions];
-        self.backgroundColor = [UIColor colorWithWhite:0.08 alpha:0.42];
+        self.backgroundColor = [UIColor colorWithRed:0.62 green:0.88 blue:1.0 alpha:0.16];
         self.layer.cornerRadius = 26;
         self.layer.masksToBounds = YES;
         self.layer.cornerCurve = kCACornerCurveContinuous;
         self.layer.borderWidth = 1.0;
-        self.layer.borderColor = [UIColor colorWithRed:0.35 green:1.0 blue:0.86 alpha:0.20].CGColor;
+        self.layer.borderColor = [UIColor colorWithWhite:1.0 alpha:0.34].CGColor;
 
-        UIBlurEffect *blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemUltraThinMaterialDark];
+        UIBlurEffect *blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemUltraThinMaterialLight];
         UIVisualEffectView *blurView = [[UIVisualEffectView alloc] initWithEffect:blurEffect];
         blurView.userInteractionEnabled = NO;
         blurView.translatesAutoresizingMaskIntoConstraints = NO;
