@@ -18,14 +18,14 @@
     {
         [self setDelegate:delegate];
         [self setActions:actions];
-        self.backgroundColor = [UIColor colorWithRed:0.62 green:0.88 blue:1.0 alpha:0.16];
-        self.layer.cornerRadius = 26;
+        self.backgroundColor = [UIColor colorWithRed:0.025 green:0.08 blue:0.18 alpha:0.34];
+        self.layer.cornerRadius = 30;
         self.layer.masksToBounds = YES;
         self.layer.cornerCurve = kCACornerCurveContinuous;
         self.layer.borderWidth = 1.0;
-        self.layer.borderColor = [UIColor colorWithWhite:1.0 alpha:0.34].CGColor;
+        self.layer.borderColor = [UIColor colorWithRed:0.38 green:0.78 blue:1.0 alpha:0.30].CGColor;
 
-        UIBlurEffect *blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemUltraThinMaterialLight];
+        UIBlurEffect *blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemUltraThinMaterialDark];
         UIVisualEffectView *blurView = [[UIVisualEffectView alloc] initWithEffect:blurEffect];
         blurView.userInteractionEnabled = NO;
         blurView.translatesAutoresizingMaskIntoConstraints = NO;
@@ -53,6 +53,7 @@
     [self.buttonsView removeFromSuperview];
     self.buttonsView = [[UIStackView alloc] init];
     self.buttonsView.axis = UILayoutConstraintAxisVertical;
+    self.buttonsView.spacing = 8;
     self.buttonsView.translatesAutoresizingMaskIntoConstraints = NO;
 
     int button_height = [DOGlobalAppearance isHomeButtonDevice] ? UI_ACTION_HEIGHT_HOME_BTN : UI_ACTION_HEIGHT;
