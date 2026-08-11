@@ -18,12 +18,12 @@
     {
         [self setDelegate:delegate];
         [self setActions:actions];
-        self.backgroundColor = [UIColor colorWithRed:0.025 green:0.08 blue:0.18 alpha:0.34];
-        self.layer.cornerRadius = 30;
+        self.backgroundColor = [UIColor colorWithRed:0.035 green:0.12 blue:0.22 alpha:0.24];
+        self.layer.cornerRadius = 28;
         self.layer.masksToBounds = YES;
         self.layer.cornerCurve = kCACornerCurveContinuous;
         self.layer.borderWidth = 1.0;
-        self.layer.borderColor = [UIColor colorWithRed:0.38 green:0.78 blue:1.0 alpha:0.30].CGColor;
+        self.layer.borderColor = [UIColor colorWithRed:0.55 green:0.84 blue:1.0 alpha:0.22].CGColor;
 
         UIBlurEffect *blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemUltraThinMaterialDark];
         UIVisualEffectView *blurView = [[UIVisualEffectView alloc] initWithEffect:blurEffect];
@@ -53,7 +53,7 @@
     [self.buttonsView removeFromSuperview];
     self.buttonsView = [[UIStackView alloc] init];
     self.buttonsView.axis = UILayoutConstraintAxisVertical;
-    self.buttonsView.spacing = 8;
+    self.buttonsView.spacing = 0;
     self.buttonsView.translatesAutoresizingMaskIntoConstraints = NO;
 
     int button_height = [DOGlobalAppearance isHomeButtonDevice] ? UI_ACTION_HEIGHT_HOME_BTN : UI_ACTION_HEIGHT;
