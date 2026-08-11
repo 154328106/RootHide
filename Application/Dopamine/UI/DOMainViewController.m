@@ -24,6 +24,7 @@
 @property DOActionMenuButton *updateButton;
 @property(nonatomic) BOOL hideStatusBar;
 @property(nonatomic) BOOL hideHomeIndicator;
+@property(nonatomic) CAGradientLayer *personalGradient;
 
 @end
 
@@ -31,7 +32,25 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+
+    self.personalGradient = [CAGradientLayer layer];
+    self.personalGradient.colors = @[
+        (id)[UIColor colorWithRed:0.015 green:0.075 blue:0.095 alpha:1.0].CGColor,
+        (id)[UIColor colorWithRed:0.015 green:0.25 blue:0.24 alpha:0.96].CGColor,
+        (id)[UIColor colorWithRed:0.01 green:0.055 blue:0.075 alpha:1.0].CGColor,
+    ];
+    self.personalGradient.locations = @[@0.0, @0.48, @1.0];
+    self.personalGradient.startPoint = CGPointMake(0.0, 0.0);
+    self.personalGradient.endPoint = CGPointMake(1.0, 1.0);
+    [self.view.layer insertSublayer:self.personalGradient atIndex:0];
+
     [self setupStack];
+}
+
+- (void)viewDidLayoutSubviews
+{
+    [super viewDidLayoutSubviews];
+    self.personalGradient.frame = self.view.bounds;
 }
 
 -(void)setupStack
@@ -76,7 +95,7 @@
     //Header
     DOHeaderView *headerView = [[DOHeaderView alloc] initWithImage: [UIImage imageNamed:@"Dopamine"] subtitles: @[
         [DOGlobalAppearance mainSubtitleString:[[DOEnvironmentManager sharedManager] versionSupportString]],
-        [DOGlobalAppearance secondarySubtitleString:DOLocalizedString(@"Credits_Made_By")],
+        [DOGlobalAppearance secondarySubtitleString:@"RootHide · landa + Titan · 私人定制版"],
     ]];
     
     [stackView addArrangedSubview:headerView];
