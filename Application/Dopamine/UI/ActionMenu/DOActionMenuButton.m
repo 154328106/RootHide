@@ -33,7 +33,7 @@
         chevronImage = [chevronImage imageWithConfiguration:[UIImageSymbolConfiguration configurationWithPointSize:16 weight:UIImageSymbolWeightRegular]];
         UIImageView *chevronView = [[UIImageView alloc] initWithImage:chevronImage];
         chevronView.translatesAutoresizingMaskIntoConstraints = NO;
-        chevronView.tintColor = [UIColor colorWithWhite:1 alpha:0.6];
+        chevronView.tintColor = [UIColor colorWithRed:0.46 green:1.0 blue:0.88 alpha:0.72];
         [button addSubview:chevronView];
         [NSLayoutConstraint activateConstraints:@[
             [chevronView.trailingAnchor constraintEqualToAnchor:button.trailingAnchor constant:-10],
@@ -60,7 +60,7 @@
     if (bottomSeparator)
     {
         _separator = [[UIView alloc] init];
-        _separator.backgroundColor = [UIColor colorWithWhite:0.6 alpha:0.3];
+        _separator.backgroundColor = [UIColor colorWithRed:0.52 green:1.0 blue:0.90 alpha:0.16];
         _separator.translatesAutoresizingMaskIntoConstraints = NO;
         _separator.layer.cornerRadius = 0.5;
         _separator.layer.masksToBounds = YES;
