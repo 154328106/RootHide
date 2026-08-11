@@ -43,9 +43,10 @@
 
 - (BOOL)isUpdateAvailable
 {
-    NSString *latestVersion = [self getLatestReleaseTag];
-    NSString *currentVersion = [self getLaunchedReleaseTag];
-    return [latestVersion numericalVersionRepresentation] > [currentVersion numericalVersionRepresentation];
+    // This custom RootHide build is not published through the upstream
+    // Dopamine2-roothide release channel. Comparing against that channel
+    // produces a permanent false-positive update banner.
+    return NO;
 }
 
 - (NSArray *)getUpdatesInRange:(NSString *)start end:(NSString *)end
