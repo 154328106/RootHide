@@ -17,10 +17,12 @@
 {
     if (self = [super init])
     {
-        self.backgroundColor = [DOThemeManager menuColorWithAlpha:1.0];
-        self.layer.cornerRadius = 14;
+        self.backgroundColor = [UIColor colorWithRed:0.12 green:0.72 blue:0.61 alpha:0.96];
+        self.layer.cornerRadius = 22;
         self.layer.masksToBounds = YES;
         self.layer.cornerCurve = kCACornerCurveContinuous;
+        self.layer.borderWidth = 1.0;
+        self.layer.borderColor = [UIColor colorWithRed:0.65 green:1.0 blue:0.92 alpha:0.42].CGColor;
         self.translatesAutoresizingMaskIntoConstraints = NO;
 
         self.button = [DOActionMenuButton buttonWithAction:actions chevron:NO];
