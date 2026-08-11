@@ -23,6 +23,12 @@
     DOActionMenuButton *button = [DOActionMenuButton buttonWithConfiguration:[DOGlobalAppearance defaultButtonConfiguration] primaryAction:action];
     [button.titleLabel setAdjustsFontSizeToFitWidth:YES];
     [button setContentHorizontalAlignment:UIControlContentHorizontalAlignmentLeft];
+    button.backgroundColor = [UIColor colorWithRed:0.34 green:0.68 blue:0.96 alpha:0.10];
+    button.layer.cornerRadius = 16;
+    button.layer.cornerCurve = kCACornerCurveContinuous;
+    button.layer.borderWidth = 0.5;
+    button.layer.borderColor = [UIColor colorWithWhite:1.0 alpha:0.12].CGColor;
+    button.layer.masksToBounds = YES;
 
     if ([DOGlobalAppearance isRTL])
         [button setContentHorizontalAlignment:UIControlContentHorizontalAlignmentRight];
@@ -54,24 +60,9 @@
 
 -(void)setBottomSeparator:(BOOL)bottomSeparator
 {
-    _bottomSeparator = bottomSeparator;
-    if (_separator)
-        [_separator removeFromSuperview];
-    if (bottomSeparator)
-    {
-        _separator = [[UIView alloc] init];
-        _separator.backgroundColor = [UIColor colorWithRed:0.52 green:1.0 blue:0.90 alpha:0.16];
-        _separator.translatesAutoresizingMaskIntoConstraints = NO;
-        _separator.layer.cornerRadius = 0.5;
-        _separator.layer.masksToBounds = YES;
-        [self addSubview:_separator];
-        [NSLayoutConstraint activateConstraints:@[
-            [_separator.leadingAnchor constraintEqualToAnchor:self.leadingAnchor constant:10],
-            [_separator.trailingAnchor constraintEqualToAnchor:self.trailingAnchor constant:-10],
-            [_separator.bottomAnchor constraintEqualToAnchor:self.bottomAnchor],
-            [_separator.heightAnchor constraintEqualToConstant:1],
-        ]];
-    }
+    _bottomSeparator = NO;
+    [_separator removeFromSuperview];
+    _separator = nil;
 }
 
 @end
