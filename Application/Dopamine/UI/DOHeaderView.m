@@ -33,15 +33,21 @@
             [stackView.bottomAnchor constraintEqualToAnchor:self.bottomAnchor],
         ]];
 
-        //1 - Add the logo to our stack
-        self.logoView = [[UIImageView alloc] init];
-        self.logoView.translatesAutoresizingMaskIntoConstraints = NO;
-        self.logoView.image = [image imageWithAlignmentRectInsets:UIEdgeInsetsMake(7, 0, -7, 0)];
-        [stackView addArrangedSubview:self.logoView];
+        // Personal build wordmark. Text scales more cleanly than modifying the
+        // upstream logo asset and remains readable over every glass background.
+        UILabel *wordmark = [[UILabel alloc] init];
+        wordmark.translatesAutoresizingMaskIntoConstraints = NO;
+        wordmark.text = @"Dopamine RH";
+        wordmark.textColor = [UIColor whiteColor];
+        wordmark.font = [UIFont systemFontOfSize:48 weight:UIFontWeightBold];
+        wordmark.adjustsFontSizeToFitWidth = YES;
+        wordmark.minimumScaleFactor = 0.72;
+        wordmark.numberOfLines = 1;
+        [stackView addArrangedSubview:wordmark];
 
         [NSLayoutConstraint activateConstraints:@[
-            [self.logoView.heightAnchor constraintEqualToConstant:40],
-            [self.logoView.widthAnchor constraintEqualToAnchor:self.logoView.heightAnchor multiplier:image.size.width / image.size.height],
+            [wordmark.heightAnchor constraintEqualToConstant:58],
+            [wordmark.widthAnchor constraintLessThanOrEqualToAnchor:self.widthAnchor],
         ]];
 
         //3 - Add our subtitles to our stack
