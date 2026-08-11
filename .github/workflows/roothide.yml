@@ -22,7 +22,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  BUILD_MODE: ${{ github.event.inputs.build_mode || 'focused' }}
+  BUILD_MODE: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.build_mode || 'full' }}
   THEOS: ${{ github.workspace }}/theos
   THEOS_COMMIT: 88506b2c22e9e07dd4ed055f23c9e398a117a2c7
   IOS_SDK_VERSION: "16.5"
@@ -132,6 +132,8 @@ jobs:
             BaseBin/systemhook/src
           grep -F 'extern const char *HOOK_DYLIB_PATH;' \
             BaseBin/systemhook/src/common/common.h
+          ! grep -R -n -E 'APTTRUST-|TRUSTFLOW-|spawn path=%\{public\}s' \
+            BaseBin/systemhook/src
 
       - name: Focused build systemhook
         if: env.BUILD_MODE == 'focused'
@@ -143,7 +145,6 @@ jobs:
           mkdir -p artifacts
           cp BaseBin/systemhook/systemhook.dylib artifacts/systemhook.dylib
           file artifacts/systemhook.dylib
-          strings artifacts/systemhook.dylib | grep -F "TRUSTFLOW-8A10"
 
       - name: Full build TIPA
         if: env.BUILD_MODE == 'full'
