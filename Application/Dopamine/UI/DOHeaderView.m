@@ -11,6 +11,7 @@
 @interface DOHeaderView ()
 
 @property (nonatomic) UIImageView *logoView;
+@property (nonatomic, readwrite) UILabel *uptimeLabel;
 
 @end
 
@@ -67,6 +68,14 @@
             label.translatesAutoresizingMaskIntoConstraints = NO;
             [stackView addArrangedSubview:label];
         }];
+
+        self.uptimeLabel = [[UILabel alloc] init];
+        self.uptimeLabel.translatesAutoresizingMaskIntoConstraints = NO;
+        self.uptimeLabel.font = [UIFont monospacedDigitSystemFontOfSize:12 weight:UIFontWeightMedium];
+        self.uptimeLabel.textColor = [UIColor colorWithRed:0.62 green:0.88 blue:1.0 alpha:0.86];
+        self.uptimeLabel.text = @"";
+        self.uptimeLabel.hidden = YES;
+        [stackView addArrangedSubview:self.uptimeLabel];
 
         self.translatesAutoresizingMaskIntoConstraints = NO;
 
