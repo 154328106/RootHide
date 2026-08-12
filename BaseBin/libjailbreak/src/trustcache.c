@@ -3,9 +3,19 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <errno.h>
+#include <pthread.h>
 #include "kernel.h"
 #include "info.h"
 #include "primitives.h"
+
+// Duplicate trust requests used to allocate permanent IOSurface-backed
+// trust-cache pages. Those allocations are charged to launchd and can
+// eventually make jetsam terminate pid 1. Serialize updates, discard hashes
+// that are already trusted, and retain a fail-safe growth bound.
+#define JB_TRUSTCACHE_MAX_PAGES 256
+#define JB_TRUSTCACHE_MAX_REQUEST_ENTRIES 8192
+static pthread_mutex_t gTrustCacheUpdateLock = PTHREAD_MUTEX_INITIALIZER;
 
 void _trustcache_file_init(trustcache_file_v1 *file)
 {
@@ -167,13 +177,16 @@ uint64_t _jb_trustcache_grow(void)
 	return jbTcKern;
 }
 
-int jb_trustcache_add_entries(struct trustcache_entry_v1 *entries, uint32_t entryCount)
+static int _jb_trustcache_add_entries_locked(struct trustcache_entry_v1 *entries, uint32_t entryCount)
 {
 	uint32_t remainingEntryCount = entryCount;
+	uint32_t insertedEntryCount = 0;
 	while (remainingEntryCount > 0) {
 		__block uint64_t freeJbTcKaddr = 0;
 		__block uint32_t freeJbTcCurrentLength = 0;
+		__block uint32_t trustCachePageCount = 0;
 		_jb_trustcache_enumerate(^(uint64_t jbTcKaddr, bool *stop) {
+			trustCachePageCount++;
 			uint32_t length = kread32(jbTcKaddr + offsetof(jb_trustcache, file.length));
 			if (length < JB_TRUSTCACHE_ENTRY_COUNT) {
 				freeJbTcKaddr = jbTcKaddr;
@@ -182,7 +195,13 @@ int jb_trustcache_add_entries(struct trustcache_entry_v1 *entries, uint32_t entr
 			}
 		});
 		if (freeJbTcKaddr == 0) {
+			if (trustCachePageCount >= JB_TRUSTCACHE_MAX_PAGES) {
+				return ENOSPC;
+			}
 			freeJbTcKaddr = _jb_trustcache_grow();
+			if (freeJbTcKaddr == 0) {
+				return ENOMEM;
+			}
 		}
 
 		uint32_t entryCountToInsert = JB_TRUSTCACHE_ENTRY_COUNT - freeJbTcCurrentLength;
@@ -193,25 +212,95 @@ int jb_trustcache_add_entries(struct trustcache_entry_v1 *entries, uint32_t entr
 		jb_trustcache *jbTc = alloca(JB_TRUSTCACHE_SIZE);
 		kreadbuf(freeJbTcKaddr, jbTc, JB_TRUSTCACHE_SIZE);
 		for (uint32_t i = 0; i < entryCountToInsert; i++) {
-			jbTc->file.entries[freeJbTcCurrentLength+i] = entries[i];
+			jbTc->file.entries[freeJbTcCurrentLength+i] = entries[insertedEntryCount+i];
 		}
 		jbTc->file.length += entryCountToInsert;
 		_trustcache_file_sort(&jbTc->file);
 		kwritebuf(freeJbTcKaddr, jbTc, JB_TRUSTCACHE_SIZE);
 		remainingEntryCount -= entryCountToInsert;
+		insertedEntryCount += entryCountToInsert;
 	}
 	return 0;
 }
 
+int jb_trustcache_add_entries(struct trustcache_entry_v1 *entries, uint32_t entryCount)
+{
+	if (entryCount == 0) return 0;
+	if (!entries) return EINVAL;
+	if (entryCount > JB_TRUSTCACHE_MAX_REQUEST_ENTRIES) return E2BIG;
+
+	int result = 0;
+	trustcache_entry_v1 *uniqueEntries = calloc(entryCount, sizeof(*uniqueEntries));
+	bool *alreadyTrusted = calloc(entryCount, sizeof(*alreadyTrusted));
+	jb_trustcache *cachedTrustCache = malloc(JB_TRUSTCACHE_SIZE);
+	if (!uniqueEntries || !alreadyTrusted || !cachedTrustCache) {
+		result = ENOMEM;
+		goto out;
+	}
+
+	memcpy(uniqueEntries, entries, entryCount * sizeof(*uniqueEntries));
+	qsort(uniqueEntries, entryCount, sizeof(*uniqueEntries), _trustcache_file_sort_entry_comparator_v1);
+
+	uint32_t uniqueCount = 0;
+	for (uint32_t i = 0; i < entryCount; i++) {
+		if (uniqueCount == 0 ||
+			memcmp(uniqueEntries[uniqueCount-1].hash, uniqueEntries[i].hash, sizeof(cdhash_t)) != 0) {
+			uniqueEntries[uniqueCount++] = uniqueEntries[i];
+		}
+	}
+
+	pthread_mutex_lock(&gTrustCacheUpdateLock);
+	_jb_trustcache_enumerate(^(uint64_t jbTcKaddr, bool *stop) {
+		kreadbuf(jbTcKaddr, cachedTrustCache, JB_TRUSTCACHE_SIZE);
+		uint32_t cachedCount = cachedTrustCache->file.length;
+		if (cachedCount > JB_TRUSTCACHE_ENTRY_COUNT) cachedCount = JB_TRUSTCACHE_ENTRY_COUNT;
+
+		uint32_t requestedIndex = 0;
+		uint32_t cachedIndex = 0;
+		while (requestedIndex < uniqueCount && cachedIndex < cachedCount) {
+			int comparison = memcmp(uniqueEntries[requestedIndex].hash,
+				cachedTrustCache->file.entries[cachedIndex].hash, sizeof(cdhash_t));
+			if (comparison == 0) {
+				alreadyTrusted[requestedIndex++] = true;
+				cachedIndex++;
+			} else if (comparison < 0) {
+				requestedIndex++;
+			} else {
+				cachedIndex++;
+			}
+		}
+	});
+
+	uint32_t newEntryCount = 0;
+	for (uint32_t i = 0; i < uniqueCount; i++) {
+		if (!alreadyTrusted[i]) uniqueEntries[newEntryCount++] = uniqueEntries[i];
+	}
+	result = _jb_trustcache_add_entries_locked(uniqueEntries, newEntryCount);
+	pthread_mutex_unlock(&gTrustCacheUpdateLock);
+
+out:
+	free(cachedTrustCache);
+	free(alreadyTrusted);
+	free(uniqueEntries);
+	return result;
+}
+
 int jb_trustcache_add_cdhashes(cdhash_t *hashes, uint32_t hashCount)
 {
-	struct trustcache_entry_v1 entries[hashCount];
-	for (int i = 0; i < hashCount; i++) {
+	if (hashCount == 0) return 0;
+	if (!hashes) return EINVAL;
+	if (hashCount > JB_TRUSTCACHE_MAX_REQUEST_ENTRIES) return E2BIG;
+
+	struct trustcache_entry_v1 *entries = calloc(hashCount, sizeof(*entries));
+	if (!entries) return ENOMEM;
+	for (uint32_t i = 0; i < hashCount; i++) {
 		memcpy(entries[i].hash, hashes[i], sizeof(cdhash_t));
 		entries[i].hash_type = 1;
 		entries[i].flags = 0;
 	}
-	return jb_trustcache_add_entries(entries, hashCount);
+	int result = jb_trustcache_add_entries(entries, hashCount);
+	free(entries);
+	return result;
 }
 
 int jb_trustcache_add_entry(struct trustcache_entry_v1 entry)
