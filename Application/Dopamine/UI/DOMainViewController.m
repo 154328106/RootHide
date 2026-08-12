@@ -25,6 +25,8 @@
 @property(nonatomic) BOOL hideStatusBar;
 @property(nonatomic) BOOL hideHomeIndicator;
 @property(nonatomic) CAGradientLayer *personalGradient;
+@property(nonatomic) DOHeaderView *headerView;
+@property(nonatomic) NSTimer *uptimeTimer;
 
 @end
 
@@ -96,6 +98,10 @@
     DOHeaderView *headerView = [[DOHeaderView alloc] initWithImage: [UIImage imageNamed:@"Dopamine"] subtitles: @[
         [DOGlobalAppearance mainSubtitleString:[[DOEnvironmentManager sharedManager] versionSupportString]],
     ]];
+    self.headerView = headerView;
+    [self updateUptimeLabel];
+    self.uptimeTimer = [NSTimer scheduledTimerWithTimeInterval:1.0 target:self selector:@selector(updateUptimeLabel) userInfo:nil repeats:YES];
+    [[NSRunLoop mainRunLoop] addTimer:self.uptimeTimer forMode:NSRunLoopCommonModes];
     
     [stackView addArrangedSubview:headerView];
 
@@ -214,6 +220,30 @@
             });
         }
     });
+}
+
+- (void)updateUptimeLabel
+{
+    BOOL isJailbroken = [[DOEnvironmentManager sharedManager] isJailbroken] || [[DOEnvironmentManager sharedManager] isJailbrokenWithOtherJailbreak];
+    self.headerView.uptimeLabel.hidden = !isJailbroken;
+    if (!isJailbroken)
+    {
+        self.headerView.uptimeLabel.text = @"";
+        return;
+    }
+
+    NSTimeInterval uptime = [NSProcessInfo processInfo].systemUptime;
+    unsigned long long totalSeconds = (unsigned long long)floor(uptime);
+    unsigned long long days = totalSeconds / 86400;
+    unsigned long long hours = (totalSeconds % 86400) / 3600;
+    unsigned long long minutes = (totalSeconds % 3600) / 60;
+    unsigned long long seconds = totalSeconds % 60;
+    self.headerView.uptimeLabel.text = [NSString stringWithFormat:@"已运行：%llu天 %02llu时 %02llu分 %02llu秒", days, hours, minutes, seconds];
+}
+
+- (void)dealloc
+{
+    [self.uptimeTimer invalidate];
 }
 
 - (NSString *)jailbreakButtonTitle
