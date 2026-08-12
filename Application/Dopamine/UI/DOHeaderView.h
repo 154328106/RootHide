@@ -11,6 +11,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface DOHeaderView : UIView
 
+@property (nonatomic, readonly) UILabel *uptimeLabel;
+
 -(id)initWithImage:(UIImage *)image subtitles:(NSArray<NSAttributedString *> *)subtitles;
 
 @end
