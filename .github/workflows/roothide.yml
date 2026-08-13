@@ -43,6 +43,9 @@ jobs:
       - name: Apply submodule patches
         run: |
           set -euo pipefail
+          # Dopamine 3.0.5 XPF fixes IOSurface metric resolution.
+          git -C BaseBin/XPF fetch --no-tags https://github.com/opa334/XPF.git 9e12b8faa7444f6fe7f699aec6b6c96d151455d3
+          git -C BaseBin/XPF diff --binary HEAD 9e12b8faa7444f6fe7f699aec6b6c96d151455d3 -- src/common.c | git -C BaseBin/XPF apply
           git -C BaseBin/XPF apply "$GITHUB_WORKSPACE/.github/patches/XPF-iosurface.patch"
           git -C BaseBin/opainject apply "$GITHUB_WORKSPACE/.github/patches/opainject-build.patch"
 
