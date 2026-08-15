@@ -43,9 +43,7 @@
 
 - (BOOL)isUpdateAvailable
 {
-    NSString *latestVersion = [self getLatestReleaseTag];
-    NSString *currentVersion = [self getLaunchedReleaseTag];
-    return [latestVersion numericalVersionRepresentation] > [currentVersion numericalVersionRepresentation];
+    return NO;
 }
 
 - (NSArray *)getUpdatesInRange:(NSString *)start end:(NSString *)end
@@ -77,7 +75,7 @@
     static dispatch_once_t onceToken;
     static NSArray *releases;
     dispatch_once(&onceToken, ^{
-        NSURL *url = [NSURL URLWithString:@"https://api.github.com/repos/P013onEr/RootHide/releases"];
+        NSURL *url = [NSURL URLWithString:@"https://api.github.com/repos/roothide/Dopamine2-roothide/releases"];
         NSData *data = [NSData dataWithContentsOfURL:url];
         if (data) {
             NSError *error;
@@ -133,7 +131,7 @@
 
 - (NSString*)getLaunchedReleaseTag
 {
-    return [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleShortVersionString"];
+    return [[[[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleShortVersionString"] componentsSeparatedByString:@"."] lastObject];
 }
 
 - (NSArray*)availablePackageManagers

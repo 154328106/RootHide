@@ -11,6 +11,7 @@
 @interface DOHeaderView ()
 
 @property (nonatomic) UIImageView *logoView;
+@property (nonatomic, readwrite) UILabel *uptimeLabel;
 
 @end
 
@@ -33,15 +34,28 @@
             [stackView.bottomAnchor constraintEqualToAnchor:self.bottomAnchor],
         ]];
 
-        //1 - Add the logo to our stack
-        self.logoView = [[UIImageView alloc] init];
-        self.logoView.translatesAutoresizingMaskIntoConstraints = NO;
-        self.logoView.image = [image imageWithAlignmentRectInsets:UIEdgeInsetsMake(7, 0, -7, 0)];
-        [stackView addArrangedSubview:self.logoView];
+        UILabel *wordmark = [[UILabel alloc] init];
+        wordmark.translatesAutoresizingMaskIntoConstraints = NO;
+        UIFont *baseFont = [UIFont systemFontOfSize:30 weight:UIFontWeightSemibold];
+        UIFontDescriptor *roundedDescriptor = [baseFont.fontDescriptor fontDescriptorWithDesign:UIFontDescriptorSystemDesignRounded];
+        UIFont *wordmarkFont = roundedDescriptor ? [UIFont fontWithDescriptor:roundedDescriptor size:30] : baseFont;
+        wordmark.attributedText = [[NSAttributedString alloc] initWithString:@"Dopamine RH" attributes:@{
+            NSFontAttributeName: wordmarkFont,
+            NSForegroundColorAttributeName: [UIColor colorWithRed:0.86 green:0.96 blue:1.0 alpha:1.0],
+            NSKernAttributeName: @0.15,
+        }];
+        wordmark.adjustsFontSizeToFitWidth = YES;
+        wordmark.minimumScaleFactor = 0.82;
+        wordmark.numberOfLines = 1;
+        wordmark.layer.shadowColor = [UIColor colorWithRed:0.20 green:0.65 blue:1.0 alpha:1.0].CGColor;
+        wordmark.layer.shadowOffset = CGSizeZero;
+        wordmark.layer.shadowRadius = 8;
+        wordmark.layer.shadowOpacity = 0.30;
+        [stackView addArrangedSubview:wordmark];
 
         [NSLayoutConstraint activateConstraints:@[
-            [self.logoView.heightAnchor constraintEqualToConstant:40],
-            [self.logoView.widthAnchor constraintEqualToAnchor:self.logoView.heightAnchor multiplier:image.size.width / image.size.height],
+            [wordmark.heightAnchor constraintEqualToConstant:38],
+            [wordmark.widthAnchor constraintLessThanOrEqualToAnchor:self.widthAnchor],
         ]];
 
         //3 - Add our subtitles to our stack
@@ -51,6 +65,14 @@
             label.translatesAutoresizingMaskIntoConstraints = NO;
             [stackView addArrangedSubview:label];
         }];
+
+        self.uptimeLabel = [[UILabel alloc] init];
+        self.uptimeLabel.translatesAutoresizingMaskIntoConstraints = NO;
+        self.uptimeLabel.font = [UIFont monospacedDigitSystemFontOfSize:12 weight:UIFontWeightMedium];
+        self.uptimeLabel.textColor = [UIColor colorWithRed:0.62 green:0.88 blue:1.0 alpha:0.86];
+        self.uptimeLabel.text = @"";
+        self.uptimeLabel.hidden = YES;
+        [stackView addArrangedSubview:self.uptimeLabel];
 
         self.translatesAutoresizingMaskIntoConstraints = NO;
 
