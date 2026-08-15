@@ -355,6 +355,11 @@ int trustcache_file_upload(trustcache_file_v1 *tc)
 	uint64_t tcKaddr = 0;
 	if (kalloc(&tcKaddr, tcSize) != 0) return -1;
 
+	// kalloc is not guaranteed to be zeroed, make sure trustcache head is zeroed
+	char nullBuf[ksizeof(trustcache)];
+	memset(nullBuf, 0, sizeof(nullBuf));
+	kwritebuf(tcKaddr, nullBuf, sizeof(nullBuf));
+
 	uint64_t tcFileKaddr = tcKaddr + ksizeof(trustcache);
 	kwritebuf(tcFileKaddr, tc, tcSize - ksizeof(trustcache));
 
