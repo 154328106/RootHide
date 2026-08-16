@@ -20,6 +20,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 + (instancetype)sharedManager;
 
+@property (nonatomic, readonly) NSData *bootManifestHash;
+
 - (NSString *)appVersion;
 - (NSString *)appVersionDisplayString;
 - (NSString *)nightlyHash;
@@ -63,11 +65,13 @@ NS_ASSUME_NONNULL_BEGIN
 - (BOOL)isIDownloadEnabled;
 - (void)setIDownloadEnabled:(BOOL)enabled needsUnsandbox:(BOOL)needsUnsandbox;
 - (void)setIDownloadLoaded:(BOOL)loaded needsUnsandbox:(BOOL)needsUnsandbox;
+/*
 - (BOOL)isFakelibMounted;
 - (int)setFakelibMounted:(BOOL)mounted;
 - (int)setPrivatePrebootProtected:(BOOL)protected;
 - (BOOL)isJailbreakHidden;
 - (void)setJailbreakHidden:(BOOL)hidden;
+*/
 
 - (BOOL)isPACBypassRequired;
 - (BOOL)isPPLBypassRequired;
@@ -77,6 +81,10 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSError *)deleteBootstrap;
 - (NSError *)reinstallPackageManagers;
 - (NSError *)updateBootLogo;
+- (NSArray<NSString *> *)fakeMountPaths;
+- (BOOL)saveFakeMountPaths:(NSArray<NSString *> *)paths;
+- (int)setFakeMountPath:(NSString *)path mounted:(BOOL)mounted deleteMirror:(BOOL)deleteMirror;
+- (void)restoreFakeMounts;
 @end
 
 NS_ASSUME_NONNULL_END
