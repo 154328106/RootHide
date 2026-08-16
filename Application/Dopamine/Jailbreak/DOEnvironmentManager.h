@@ -68,9 +68,6 @@ NS_ASSUME_NONNULL_BEGIN
 - (BOOL)isFakelibMounted;
 - (int)setFakelibMounted:(BOOL)mounted;
 - (int)setPrivatePrebootProtected:(BOOL)protected;
-- (BOOL)isJailbreakHidden;
-- (void)setJailbreakHidden:(BOOL)hidden;
-
 - (BOOL)isPACBypassRequired;
 - (BOOL)isPPLBypassRequired;
 
