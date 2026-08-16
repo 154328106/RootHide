@@ -139,8 +139,8 @@
         [self.cardView addSubview:self.collectionView];
 
         [NSLayoutConstraint activateConstraints:@[
-            [self.cardView.leadingAnchor constraintEqualToAnchor:self.contentView.leadingAnchor constant:32],
-            [self.cardView.trailingAnchor constraintEqualToAnchor:self.contentView.trailingAnchor constant:-32],
+            [self.cardView.leadingAnchor constraintEqualToAnchor:self.contentView.leadingAnchor constant:20],
+            [self.cardView.trailingAnchor constraintEqualToAnchor:self.contentView.trailingAnchor constant:-20],
             [self.cardView.topAnchor constraintEqualToAnchor:self.contentView.topAnchor constant:6],
             [self.cardView.bottomAnchor constraintEqualToAnchor:self.contentView.bottomAnchor constant:-6],
 
