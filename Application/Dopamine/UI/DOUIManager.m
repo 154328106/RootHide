@@ -31,15 +31,19 @@
         _preferenceManager = [DOPreferenceManager sharedManager];
         _logRecord = [NSMutableArray new];
         _logLock = [NSLock new];
+
+        NSString *logPath = [NSHomeDirectory() stringByAppendingPathComponent:@"Documents/Dopamine-jailbreak.log"];
+        NSString *previousLog = [NSString stringWithContentsOfFile:logPath encoding:NSUTF8StringEncoding error:nil];
+        if (previousLog.length != 0) {
+            [_logRecord addObjectsFromArray:[previousLog componentsSeparatedByString:@"\n"]];
+        }
     }
     return self;
 }
 
 - (BOOL)isUpdateAvailable
 {
-    NSString *latestVersion = [self getLatestReleaseTag];
-    NSString *currentVersion = [self getLaunchedReleaseTag];
-    return [latestVersion numericalVersionRepresentation] > [currentVersion numericalVersionRepresentation];
+    return NO;
 }
 
 - (NSArray *)getUpdatesInRange:(NSString *)start end:(NSString *)end
@@ -71,7 +75,7 @@
     static dispatch_once_t onceToken;
     static NSArray *releases;
     dispatch_once(&onceToken, ^{
-        NSURL *url = [NSURL URLWithString:@"https://api.github.com/repos/opa334/Dopamine/releases"];
+        NSURL *url = [NSURL URLWithString:@"https://api.github.com/repos/roothide/Dopamine2-roothide/releases"];
         NSData *data = [NSData dataWithContentsOfURL:url];
         if (data) {
             NSError *error;
@@ -127,7 +131,7 @@
 
 - (NSString*)getLaunchedReleaseTag
 {
-    return [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleShortVersionString"];
+    return [[[[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleShortVersionString"] componentsSeparatedByString:@"."] lastObject];
 }
 
 - (NSArray*)availablePackageManagers
@@ -207,12 +211,28 @@
 
 - (void)sendLog:(NSString*)log debug:(BOOL)debug update:(BOOL)update
 {
-    if (!self.logView || !log)
+    if (!log)
         return;
 
     [_logLock lock];
 
     [self.logRecord addObject:log];
+
+    NSString *logPath = [NSHomeDirectory() stringByAppendingPathComponent:@"Documents/Dopamine-jailbreak.log"];
+    NSFileHandle *logFile = [NSFileHandle fileHandleForWritingAtPath:logPath];
+    if (!logFile) {
+        [[NSFileManager defaultManager] createFileAtPath:logPath contents:nil attributes:nil];
+        logFile = [NSFileHandle fileHandleForWritingAtPath:logPath];
+    }
+    [logFile seekToEndOfFile];
+    [logFile writeData:[[NSString stringWithFormat:@"%@\n", log] dataUsingEncoding:NSUTF8StringEncoding]];
+    [logFile synchronizeFile];
+    [logFile closeFile];
+
+    if (!self.logView) {
+        [_logLock unlock];
+        return;
+    }
 
     BOOL isDebug = self.logView.class == DODebugLogView.class;
     if (debug && !isDebug) {
@@ -334,3 +354,5 @@ NSString *DOLocalizedString(NSString *key)
 {
     return [[DOUIManager sharedInstance] localizedStringForKey:key];
 }
+
+

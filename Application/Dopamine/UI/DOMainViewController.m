@@ -24,6 +24,9 @@
 @property DOActionMenuButton *updateButton;
 @property(nonatomic) BOOL hideStatusBar;
 @property(nonatomic) BOOL hideHomeIndicator;
+@property(nonatomic) CAGradientLayer *personalGradient;
+@property(nonatomic) DOHeaderView *headerView;
+@property(nonatomic) NSTimer *uptimeTimer;
 
 @end
 
@@ -31,7 +34,22 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+    self.personalGradient = [CAGradientLayer layer];
+    self.personalGradient.colors = @[
+        (id)[UIColor colorWithRed:0.025 green:0.075 blue:0.16 alpha:1.0].CGColor,
+        (id)[UIColor colorWithRed:0.055 green:0.38 blue:0.48 alpha:0.96].CGColor,
+        (id)[UIColor colorWithRed:0.12 green:0.10 blue:0.30 alpha:1.0].CGColor,
+    ];
+    self.personalGradient.locations = @[@0.0, @0.48, @1.0];
+    self.personalGradient.startPoint = CGPointMake(0.0, 0.0);
+    self.personalGradient.endPoint = CGPointMake(1.0, 1.0);
+    [self.view.layer insertSublayer:self.personalGradient atIndex:0];
     [self setupStack];
+}
+
+- (void)viewDidLayoutSubviews {
+    [super viewDidLayoutSubviews];
+    self.personalGradient.frame = self.view.bounds;
 }
 
 -(void)setupStack
@@ -76,8 +94,11 @@
     //Header
     DOHeaderView *headerView = [[DOHeaderView alloc] initWithImage: [UIImage imageNamed:@"Dopamine"] subtitles: @[
         [DOGlobalAppearance mainSubtitleString:[[DOEnvironmentManager sharedManager] versionSupportString]],
-        [DOGlobalAppearance secondarySubtitleString:DOLocalizedString(@"Credits_Made_By")],
     ]];
+    self.headerView = headerView;
+    [self updateUptimeLabel];
+    self.uptimeTimer = [NSTimer scheduledTimerWithTimeInterval:1.0 target:self selector:@selector(updateUptimeLabel) userInfo:nil repeats:YES];
+    [[NSRunLoop mainRunLoop] addTimer:self.uptimeTimer forMode:NSRunLoopCommonModes];
     
     [stackView addArrangedSubview:headerView];
 
@@ -88,20 +109,30 @@
     
     //Action Menu
     DOActionMenuView *actionView = [[DOActionMenuView alloc] initWithActions:@[
-        [UIAction actionWithTitle:DOLocalizedString(@"Menu_Settings_Title") image:[UIImage systemImageNamed:@"gearshape" withConfiguration:[DOGlobalAppearance smallIconImageConfiguration]] identifier:@"settings" handler:^(__kindof UIAction * _Nonnull action) {
+        [UIAction actionWithTitle:@"设置详情管理" image:[UIImage systemImageNamed:@"gearshape" withConfiguration:[DOGlobalAppearance smallIconImageConfiguration]] identifier:@"settings" handler:^(__kindof UIAction * _Nonnull action) {
             [self.navigationController pushViewController:[[DOSettingsController alloc] init] animated:YES];
         }],
-        [UIAction actionWithTitle:DOLocalizedString(@"Menu_Restart_SpringBoard_Title") image:[UIImage systemImageNamed:@"arrow.clockwise" withConfiguration:[DOGlobalAppearance smallIconImageConfiguration]] identifier:@"respring" handler:^(__kindof UIAction * _Nonnull action) {
+        [UIAction actionWithTitle:@"重启桌面总控" image:[UIImage systemImageNamed:@"arrow.clockwise" withConfiguration:[DOGlobalAppearance smallIconImageConfiguration]] identifier:@"respring" handler:^(__kindof UIAction * _Nonnull action) {
             [self fadeToBlack:^{
                 [[DOEnvironmentManager sharedManager] respring];
             }];
         }],
-        [UIAction actionWithTitle:DOLocalizedString(@"Menu_Reboot_Userspace_Title") image:[UIImage systemImageNamed:@"arrow.clockwise.circle" withConfiguration:[DOGlobalAppearance smallIconImageConfiguration]] identifier:@"reboot-userspace" handler:^(__kindof UIAction * _Nonnull action) {
+        [UIAction actionWithTitle:@"重启用户空间" image:[UIImage systemImageNamed:@"arrow.clockwise.circle" withConfiguration:[DOGlobalAppearance smallIconImageConfiguration]] identifier:@"reboot-userspace" handler:^(__kindof UIAction * _Nonnull action) {
             [self fadeToBlack:^{
                 [[DOEnvironmentManager sharedManager] rebootUserspace];
             }];
         }],
-        [UIAction actionWithTitle:DOLocalizedString(@"Menu_Credits_Title") image:[UIImage systemImageNamed:@"info.circle" withConfiguration:[DOGlobalAppearance smallIconImageConfiguration]] identifier:@"credits" handler:^(__kindof UIAction * _Nonnull action) {
+        [UIAction actionWithTitle:@"重启本机设备" image:[UIImage systemImageNamed:@"power" withConfiguration:[DOGlobalAppearance smallIconImageConfiguration]] identifier:@"reboot-device" handler:^(__kindof UIAction * _Nonnull action) {
+            UIAlertController *confirmation = [UIAlertController alertControllerWithTitle:DOLocalizedString(@"Menu_Reboot_Device_Title") message:DOLocalizedString(@"Alert_Reboot_Device_Body") preferredStyle:UIAlertControllerStyleAlert];
+            [confirmation addAction:[UIAlertAction actionWithTitle:DOLocalizedString(@"Button_Cancel") style:UIAlertActionStyleCancel handler:nil]];
+            [confirmation addAction:[UIAlertAction actionWithTitle:DOLocalizedString(@"Button_Reboot") style:UIAlertActionStyleDestructive handler:^(__kindof UIAlertAction * _Nonnull alertAction) {
+                [self fadeToBlack:^{
+                    [[DOEnvironmentManager sharedManager] reboot];
+                }];
+            }]];
+            [self presentViewController:confirmation animated:YES completion:nil];
+        }],
+        [UIAction actionWithTitle:@"开发详情总览" image:[UIImage systemImageNamed:@"info.circle" withConfiguration:[DOGlobalAppearance smallIconImageConfiguration]] identifier:@"credits" handler:^(__kindof UIAction * _Nonnull action) {
             [self.navigationController pushViewController:[[DOCreditsViewController alloc] init] animated:YES];
         }]
     ] delegate:self];
@@ -128,12 +159,29 @@
     NSString *jailbreakButtonTitle = [self jailbreakButtonTitle];
         
     UIImage *jailbreakButtonImage;
-    if (isSupported)
+    if (!isSupported)
+        jailbreakButtonImage = [UIImage systemImageNamed:@"lock.slash" withConfiguration:[DOGlobalAppearance smallIconImageConfiguration]];
+    else if (isJailbroken)
         jailbreakButtonImage = [UIImage systemImageNamed:@"lock.open" withConfiguration:[DOGlobalAppearance smallIconImageConfiguration]];
     else
-        jailbreakButtonImage = [UIImage systemImageNamed:@"lock.slash" withConfiguration:[DOGlobalAppearance smallIconImageConfiguration]];
+        jailbreakButtonImage = [UIImage systemImageNamed:@"lock" withConfiguration:[DOGlobalAppearance smallIconImageConfiguration]];
     
     self.jailbreakBtn = [[DOJailbreakButton alloc] initWithAction: [UIAction actionWithTitle:jailbreakButtonTitle image:jailbreakButtonImage identifier:@"jailbreak" handler:^(__kindof UIAction * _Nonnull action) {
+
+
+/********************************** roothide specific ************************************/
+        if(otherJailbreakActived(false)) {
+            UIAlertController *alertController = [UIAlertController alertControllerWithTitle:DOLocalizedString(@"Error") message:DOLocalizedString(@"Your device currently has another jailbreak activated, please reboot device.") preferredStyle:UIAlertControllerStyleAlert];
+            UIAlertAction *rebootAction = [UIAlertAction actionWithTitle:DOLocalizedString(@"Button_Close") style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+                //exit(0);
+            }];
+            [alertController addAction:rebootAction];
+            [self presentViewController:alertController animated:YES completion:nil];
+            return;
+        }
+/********************************** roothide specific ************************************/
+
+
         [actionView hide];
         [self.jailbreakBtn expandButton: self.jailbreakButtonConstraints];
 
@@ -173,17 +221,41 @@
     });
 }
 
+- (void)updateUptimeLabel
+{
+    BOOL isJailbroken = [[DOEnvironmentManager sharedManager] isJailbroken] || [[DOEnvironmentManager sharedManager] isJailbrokenWithOtherJailbreak];
+    self.headerView.uptimeLabel.hidden = !isJailbroken;
+    if (!isJailbroken)
+    {
+        self.headerView.uptimeLabel.text = @"";
+        return;
+    }
+
+    NSTimeInterval uptime = [NSProcessInfo processInfo].systemUptime;
+    unsigned long long totalSeconds = (unsigned long long)floor(uptime);
+    unsigned long long days = totalSeconds / 86400;
+    unsigned long long hours = (totalSeconds % 86400) / 3600;
+    unsigned long long minutes = (totalSeconds % 3600) / 60;
+    unsigned long long seconds = totalSeconds % 60;
+    self.headerView.uptimeLabel.text = [NSString stringWithFormat:@"已运行：%llu天 %02llu时 %02llu分 %02llu秒", days, hours, minutes, seconds];
+}
+
+- (void)dealloc
+{
+    [self.uptimeTimer invalidate];
+}
+
 - (NSString *)jailbreakButtonTitle
 {
     BOOL isJailbroken = [[DOEnvironmentManager sharedManager] isJailbroken];
     BOOL isSupported = [[DOEnvironmentManager sharedManager] isSupported];
     BOOL removeJailbreakEnabled = [[DOPreferenceManager sharedManager] boolPreferenceValueForKey:@"removeJailbreakEnabled" fallback:NO];
 
-    NSString *jailbreakButtonTitle = DOLocalizedString(@"Button_Jailbreak_Title");
+    NSString *jailbreakButtonTitle = @"点我挣开枷锁~";
     if (!isSupported)
         jailbreakButtonTitle = DOLocalizedString(@"Unsupported");
     else if (isJailbroken)
-        jailbreakButtonTitle = DOLocalizedString(@"Status_Title_Jailbroken");
+        jailbreakButtonTitle = @"你已经自由啦~";
     else if (removeJailbreakEnabled)
         jailbreakButtonTitle = DOLocalizedString(@"Button_Remove_Jailbreak");
     
@@ -215,7 +287,7 @@
 
             UIAlertController *contiguousMappingWorkaroundAlertController = [UIAlertController alertControllerWithTitle:DOLocalizedString(@"Respring_Required") message:workaroundMessage preferredStyle:UIAlertControllerStyleAlert];
             
-            UIAlertAction *cancelAction = [UIAlertAction actionWithTitle:DOLocalizedString(@"Respring_Cancel") style:UIAlertActionStyleCancel handler:^(UIAlertAction * _Nonnull action) {
+            UIAlertAction *cancelAction = [UIAlertAction actionWithTitle:DOLocalizedString(@"Cancel") style:UIAlertActionStyleCancel handler:^(UIAlertAction * _Nonnull action) {
                 exit(0);
             }];
             
@@ -421,3 +493,5 @@
 }
 
 @end
+
+
