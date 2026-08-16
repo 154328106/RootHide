@@ -80,8 +80,8 @@ int emit_hookd_svc_trampoline(uint32_t *patchpoint, uint32_t *shellcode, size_t 
 
 	if (!replacementInsn || !curShc[callIdx] || !curShc[jmpbackIdx]) return -1;
 
-	int r = litehook_hook_memory(shellcode, curShc, sizeof(curShc));
-	r |= litehook_hook_memory(patchpoint, &replacementInsn, sizeof(replacementInsn));
+	int r = litehook_hook_memory_hookd(shellcode, curShc, sizeof(curShc));
+	r |= litehook_hook_memory_hookd(patchpoint, &replacementInsn, sizeof(replacementInsn));
 
 	if (emittedSize) *emittedSize = oneShcSize;
 
@@ -239,3 +239,5 @@ void init_hookd_external_support(void)
 
 	litehook_hook_function(_pthread_create_ptr, _pthread_create_hook);
 }
+
+

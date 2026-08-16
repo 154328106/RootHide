@@ -62,7 +62,7 @@ struct jbserver_domain gPlatformDomain = {
 		},
 		// JBS_PLATFORM_SET_SYSTEMWIDE_DOMAIN_ENABLED
 		{
-			.handler = systemwide_domain_set_enabled,
+			.handler = roothide_unsupport_request,
 			.args = (jbserver_arg[]){
 				{ .name = "enabled", .type = JBS_TYPE_BOOL, .out = false },
 				{ 0 },
@@ -71,3 +71,4 @@ struct jbserver_domain gPlatformDomain = {
 		{ 0 },
 	},
 };
+

@@ -5,37 +5,26 @@
 
 bool is_dopamine_app(const char *pathC)
 {
-	if (!jbinfo(appIdentifier)) return false;
+	if (!pathC || !jbinfo(appIdentifier)) return false;
 
-	// Make sure the prefix is sane
 	const char wantedPrefixC[] = "/private/var/containers/Bundle/Application/";
-	if (strncmp(pathC, wantedPrefixC, (sizeof(wantedPrefixC) - 1)) != 0) return false;
-
-	// Make sure there are no path traversals
+	if (strncmp(pathC, wantedPrefixC, sizeof(wantedPrefixC) - 1) != 0) return false;
 	if (strstr(pathC, "/../")) return false;
 
-	// Stricly enforce the number of slashes (8)
-	// /private/var/containers/Bundle/Application/*/*.app/*
-	// ^       ^   ^          ^      ^           ^ ^     ^
 	uint64_t slashNum = 0;
-	uint64_t idx = 0;
-	while (pathC[idx] != 0) {
-		if (pathC[idx++] == '/') {
-			slashNum++;
-		}
+	for (uint64_t idx = 0; pathC[idx] != 0; idx++) {
+		if (pathC[idx] == '/') slashNum++;
 	}
 	if (slashNum != 8) return false;
 
 	@autoreleasepool {
 		NSString *path = [NSString stringWithUTF8String:pathC];
-		NSString *infoPlistPath = [[path stringByDeletingLastPathComponent] stringByAppendingPathComponent:@"Info.plist"];
-		if (![[NSFileManager defaultManager] fileExistsAtPath:infoPlistPath]) return false;
+		if (!path) return false;
 
+		NSString *infoPlistPath = [[path stringByDeletingLastPathComponent] stringByAppendingPathComponent:@"Info.plist"];
 		NSDictionary *infoPlist = [NSDictionary dictionaryWithContentsOfFile:infoPlistPath];
 		NSString *bundleIdentifier = infoPlist[@"CFBundleIdentifier"];
-		if (!bundleIdentifier) return false;
-
-		return !strcmp(bundleIdentifier.UTF8String, jbinfo(appIdentifier));
+		return bundleIdentifier && !strcmp(bundleIdentifier.UTF8String, jbinfo(appIdentifier));
 	}
 }
 
@@ -72,6 +61,7 @@ void _JBFixMobilePermissionsOfDirectory(NSString *directoryPath, BOOL recursive)
 void JBFixMobilePermissions(void)
 {
 	@autoreleasepool {
+/*********************************** on roothide jbroot:/var is always a symlink ***************************************************
 		NSDictionary *attributes = [[NSFileManager defaultManager] attributesOfItemAtPath:JBROOT_PATH(@"/var") error:nil];
 		if ([attributes[NSFileType] isEqualToString:NSFileTypeSymbolicLink]) {
 			// /var/jb/var is a symlink, abort
@@ -82,6 +72,7 @@ void JBFixMobilePermissions(void)
 			// /var/jb/var/mobile is a symlink, abort
 			return;
 		}
+***********************************************************************************************************************************/
 
 		_JBFixMobilePermissionsOfDirectory(JBROOT_PATH(@"/var/mobile"), NO);
 		_JBFixMobilePermissionsOfDirectory(JBROOT_PATH(@"/var/mobile/Library"), NO);
@@ -90,3 +81,5 @@ void JBFixMobilePermissions(void)
 		_JBFixMobilePermissionsOfDirectory(JBROOT_PATH(@"/var/mobile/Library/Preferences"), YES);
 	}
 }
+
+

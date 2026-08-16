@@ -21,14 +21,11 @@ struct xnu_version {
 	uint64_t patch;
 };
 
-int xnu_version_compare(struct xnu_version v1, struct xnu_version v2)
+static int xnu_version_compare(struct xnu_version v1, struct xnu_version v2)
 {
-	if (v1.major > v2.major) return 1;
-	if (v1.major < v2.major) return -1;
-	if (v1.minor > v2.minor) return 1;
-	if (v1.minor < v2.minor) return -1;
-	if (v1.patch > v2.patch) return 1;
-	if (v1.patch < v2.patch) return -1;
+	if (v1.major != v2.major) return v1.major > v2.major ? 1 : -1;
+	if (v1.minor != v2.minor) return v1.minor > v2.minor ? 1 : -1;
+	if (v1.patch != v2.patch) return v1.patch > v2.patch ? 1 : -1;
 	return 0;
 }
 
@@ -37,7 +34,6 @@ void jbinfo_initialize_hardcoded_offsets(void)
 	struct utsname name;
 	uname(&name);
 	char *darwinVersion = name.release;
-
 	struct xnu_version xnuVersion = { 0 };
 	if (sscanf(strstr(name.version, "xnu-"), "xnu-%llu.%llu.%llu~%*s", &xnuVersion.major, &xnuVersion.minor, &xnuVersion.patch) != 3) {
 		sscanf(strstr(name.version, "xnu-"), "xnu-%llu.%llu.%*s", &xnuVersion.major, &xnuVersion.minor);
@@ -375,7 +371,7 @@ void jbinfo_initialize_hardcoded_offsets(void)
 						gSystemInfo.kernelStruct.pmap_cs_code_directory.trust       = 0x1DC;
 					}
 
-					if (strcmp(darwinVersion, "22.1.0") >= 0 && xnu_version_compare(xnuVersion, (struct xnu_version){.major = 8792, .minor = 42, .patch = 0}) >= 0) { // iOS 16.1+
+					if (strcmp(darwinVersion, "22.1.0") >= 0 && xnu_version_compare(xnuVersion, (struct xnu_version){8792, 42, 0}) >= 0) { // iOS 16.1+
 						gSystemInfo.kernelStruct.ipc_space.table_uses_smr = true;
 
 						// proc_ro
@@ -495,7 +491,7 @@ void jbinfo_initialize_hardcoded_offsets(void)
 												}
 												
 												// iOS 18.1+ (beta 5 and up)
-												if (strcmp(darwinVersion, "24.1.0") >= 0 && xnu_version_compare(xnuVersion, (struct xnu_version){.major = 11215, .minor = 40, .patch = 59}) >= 0) {
+												if (strcmp(darwinVersion, "24.1.0") >= 0 && xnu_version_compare(xnuVersion, (struct xnu_version){11215, 40, 59}) >= 0) {
 													// No more size
 													gSystemInfo.kernelStruct.trustcache.size        = 0x0;
 													gSystemInfo.kernelStruct.trustcache.fileptr     = 0x18;
@@ -771,3 +767,5 @@ uint64_t get_l2_block_count(void)
 		return 0;
 	}
 }
+
+

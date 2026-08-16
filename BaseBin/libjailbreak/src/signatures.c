@@ -18,6 +18,9 @@
 #include "kernel.h"
 #include "primitives.h"
 #include "codesign.h"
+#include "roothider.h"
+
+extern CS_DecodedBlob *csd_superblob_find_best_code_directory(CS_DecodedSuperBlob *decodedSuperblob);
 
 bool macho_is_mappable(MachO *macho)
 {
@@ -121,6 +124,20 @@ void fat_collect_untrusted_cdhashes(Fat *fat, cdhash_t **cdhashesOut, uint32_t *
 
 void file_collect_untrusted_cdhashes(int fd, cdhash_t **cdhashesOut, uint32_t *cdhashCountOut)
 {
+	static char __thread filepath[PATH_MAX] = {0};
+	if (fcntl(fd, F_GETPATH, filepath) != 0) {
+		JBLogError("Failed to get file path for fd %d", fd);
+		return;
+	}
+	if (string_has_prefix(filepath, "/private/preboot/Cryptexes/")) {
+		JBLogDebug("Skipping Cryptexes file: %s", filepath);
+		return;
+	}
+	if (isRemovableBundlePath(filepath) && !hasTrollstoreLiteMarker(filepath)) {
+		JBLogDebug("Ignoring adhoc signed app: %s", filepath);
+		return;
+	}
+
 	MemoryStream *s = file_stream_init_from_file_descriptor(fd, 0, FILE_STREAM_SIZE_AUTO, 0);
 	if (!s) return;
 
@@ -130,9 +147,27 @@ void file_collect_untrusted_cdhashes(int fd, cdhash_t **cdhashesOut, uint32_t *c
 		return;
 	}
 
-	fat_collect_untrusted_cdhashes(fat, cdhashesOut, cdhashCountOut);
+	__block cdhash_t *cdhashes = NULL;
+	__block uint32_t cdhashCount = 0;
+	fat_enumerate_slices(fat, ^(MachO *macho, bool *stop) {
+		if (macho_is_mappable(macho)) {
+			cdhash_t cdhash;
+			if (macho_parse_code_signature(macho, cdhash) && !is_cdhash_trustcached(cdhash)) {
+				if (ensure_randomized_cdhash_for_slice(filepath, macho->archDescriptor.offset, cdhash) != 0) {
+					JBLogError("Failed to ensure randomized cdhash for %s", filepath);
+					return;
+				}
+				cdhashCount++;
+				cdhashes = realloc(cdhashes, cdhashCount * sizeof(cdhash_t));
+				memcpy(cdhashes[cdhashCount-1], cdhash, sizeof(cdhash));
+			}
+		}
+	});
 
 	fat_free(fat);
+
+	*cdhashesOut = cdhashes;
+	*cdhashCountOut = cdhashCount;
 }
 
 void file_collect_untrusted_cdhashes_by_path(const char *path, cdhash_t **cdhashesOut, uint32_t *cdhashCountOut)
@@ -206,7 +241,7 @@ CS_SuperBlob *siginfo_resolve_superblob(struct siginfo *siginfo, int pid, int fd
 			uintptr_t superblobEnd   = superblobStart + superblobSize;
 			struct stat st = {};
 
-        	if (fstat(fd, &st) != 0) break;
+			if (fstat(fd, &st) != 0) break;
 			if (superblobEnd > st.st_size) break;
 			if (lseek(fd, superblobStart, SEEK_SET) != superblobStart) break;
 			if (read(fd, superblob, superblobSize) != superblobSize) break;
@@ -324,8 +359,10 @@ int trust_signatures(int pid, int fd, struct siginfo *sigInfos, uint32_t sigInfo
 			if (fd_r != 0) r = fd_r;
 		}
 	}
-	
+
 	free(sigInfosToAttach);
 	free(cdhashes);
 	return r;
 }
+
+

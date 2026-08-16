@@ -40,7 +40,6 @@ static char *read_file_to_string(const char *path) {
     return buffer;
 }
 
-
 bool dopamine_domain_allowed(audit_token_t clientToken)
 {
 	char path[PATH_MAX];
@@ -136,3 +135,5 @@ struct jbserver_domain gDopamineDomain = {
 		{ 0 },
 	},
 };
+
+

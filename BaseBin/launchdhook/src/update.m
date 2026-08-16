@@ -9,7 +9,8 @@
 
 #import <Foundation/Foundation.h>
 
-void abort_with_reason(uint32_t reason_namespace, uint64_t reason_code, const char *reason_string, uint64_t reason_flags);
+//void abort_with_reason(uint32_t reason_namespace, uint64_t reason_code, const char *reason_string, uint64_t reason_flags);
+#define abort_with_reason(reason_namespace,reason_code,reason_string,reason_flags)  launchd_panic("%s",reason_string)
 
 int jbupdate_basebin(const char *basebinTarPath)
 {
@@ -31,6 +32,7 @@ int jbupdate_basebin(const char *basebinTarPath)
 		// Update basebin trustcache
 		NSString *trustcachePath = [tmpBasebinPath stringByAppendingPathComponent:@"basebin.tc"];
 		if (![[NSFileManager defaultManager] fileExistsAtPath:trustcachePath]) return 3;
+/*
 		trustcache_file_v1 *basebinTcFile = NULL;
 		if (trustcache_file_build_from_path(trustcachePath.fileSystemRepresentation, &basebinTcFile) != 0) {
 			[[NSFileManager defaultManager] removeItemAtPath:tmpExtractionPath error:nil];
@@ -38,9 +40,17 @@ int jbupdate_basebin(const char *basebinTarPath)
 		}
 		r = trustcache_file_upload_with_uuid(basebinTcFile, BASEBIN_TRUSTCACHE_UUID);
 		free(basebinTcFile);
+*/
+/********************************* roothide specfic ********************/
+		r = randomizeAndLoadBasebinTrustcache(tmpBasebinPath.fileSystemRepresentation);
+/********************************* roothide specfic ********************/
+
 		if (r != 0) {
 			[[NSFileManager defaultManager] removeItemAtPath:tmpExtractionPath error:nil];
 			return 5;
+		}
+		else {
+			[[NSFileManager defaultManager] removeItemAtPath:trustcachePath error:nil];
 		}
 
 		// Replace basebin content
@@ -104,7 +114,6 @@ void jbupdate_update_system_info(void)
 
 		const char *kernelPath = prebootUUIDPath("/System/Library/Caches/com.apple.kernelcaches/kernelcache");
 		xpc_object_t newSystemInfoXdict = NULL;
-
 		const char *sptmPath = prebootUUIDPath("/usr/standalone/firmware/FUD/Ap,SecurePageTableMonitor.img4");
 		if (access(sptmPath, F_OK) != 0) sptmPath = NULL;
 		const char *txmPath = prebootUUIDPath("/usr/standalone/firmware/FUD/Ap,TrustedExecutionMonitor.img4");
@@ -114,7 +123,7 @@ void jbupdate_update_system_info(void)
 		int r = xpf_start_with_kernel_path(kernelPath, sptmPath, txmPath);
 		const char *error = NULL;
 		if (r == 0) {
-			char *sets[] = {
+			char *sets[99] = {
 				"translation",
 				"trustcache",
 				"sandbox",
@@ -125,13 +134,13 @@ void jbupdate_update_system_info(void)
 				NULL,
 				NULL,
 				NULL,
-				NULL,
-				NULL,
+				NULL,	
 			};
 
 			uint32_t idx = 0;
-			while(sets[++idx]);
-
+			while (sets[idx] != NULL) {
+				idx++;
+			}
 			if (xpf_set_is_supported("devmode")) {
 				sets[idx++] = "devmode"; 
 			}
@@ -144,6 +153,18 @@ void jbupdate_update_system_info(void)
 			if (xpf_set_is_supported("perfkrw")) {
 				sets[idx++] = "perfkrw";
 			}
+
+
+/********************** roothide *************************/
+sets[idx++] = "namecache";
+
+if (xpf_set_is_supported("amfi_oids")) {
+	sets[idx++] = "amfi_oids";
+}
+
+sets[idx] = NULL;
+/********************** roothide *************************/
+
 
 			newSystemInfoXdict = xpf_construct_offset_dictionary((const char **)sets);
 			if (!newSystemInfoXdict) {
@@ -199,7 +220,7 @@ void jbupdate_finalize_stage2(const char *prevVersion, const char *newVersion)
 	}
 
 	if (strcmp(prevVersion, "3.0") < 0 && strcmp(newVersion, "3.0") >= 0) {
-		// Dopamine 3.0 changed PPLRW_USER_MAPPING_OFFSET and a jbupdate from 2.x to >=3.x is therefore unsupported
+		// Dopamine 3 changed the PPL user mapping and cannot be updated live from 2.x.
 		reboot(0);
 	}
 
@@ -213,10 +234,10 @@ void jbupdate_finalize_stage2(const char *prevVersion, const char *newVersion)
 		// Set it during jbupdate if prev version is <2.1 and new version is >=2.1
 		gSystemInfo.jailbreakSettings.markAppsAsDebugged = true;
 
-		if (!host_is_arm64e()) {
-			// Initialize kcall only after we have the offsets required for it
-			arm64_kcall_init();
-		}
+#ifndef __arm64e__
+		// Initialize kcall only after we have the offsets required for it
+		arm64_kcall_init();
+#endif
 	}
 
 	// Update patched dyld
@@ -259,3 +280,5 @@ void jbupdate_finalize_stage2(const char *prevVersion, const char *newVersion)
 
 	JBFixMobilePermissions();
 }
+
+

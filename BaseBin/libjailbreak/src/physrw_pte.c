@@ -10,6 +10,9 @@
 #include <mach/mach.h>
 #include <sys/sysctl.h>
 
+#define MAGIC_PT_ADDRESS (L1_BLOCK_SIZE * (L1_BLOCK_COUNT - 1))
+#define gMagicPT ((uint64_t *)MAGIC_PT_ADDRESS) // fake variable
+
 void *gAsid = NULL;
 static pthread_mutex_t gLock;
 
@@ -228,3 +231,5 @@ bool device_supports_physrw_pte(void)
 	}
 	return true;
 }
+
+

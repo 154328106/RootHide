@@ -16,6 +16,7 @@
 #include <libjailbreak/jbroot.h>
 #include <libjailbreak/hookd.h>
 #include <libkern/OSCacheControl.h>
+#include <os/log.h>
 
 bool string_has_prefix(const char *str, const char* prefix)
 {
@@ -118,8 +119,20 @@ xpc_object_t jbuserconfig_get_value(const char *key)
 	return NULL;
 }
 
-static kSpawnConfig spawn_config_for_executable(const char* path, char *const argv[restrict])
+static bool is_apt_helper_path(const char *path)
 {
+	// Keep systemhook in apt-get so it can trust transports spawned later.
+	// Only the short-lived transport itself must be injection-free.
+	return path && strstr(path, "/apt/methods/") != NULL;
+}
+
+kSpawnConfig spawn_config_for_executable(const char* path, char *const argv[restrict])
+{
+	if (is_apt_helper_path(path)) {
+		os_log_error(OS_LOG_DEFAULT, "[APTTRUST-7C36] trust-only APT transport path=%{public}s", path);
+		return kSpawnConfigTrust;
+	}
+
 	// Blacklist to ensure general system stability
 	// I don't like this but for some processes it seems neccessary
 	const char *processBlacklist[] = {
@@ -143,6 +156,16 @@ static kSpawnConfig spawn_config_for_executable(const char* path, char *const ar
 	}
 
 	return (kSpawnConfigInject | kSpawnConfigTrust);
+}
+
+int __posix_spawn_orig(pid_t *restrict pid, const char *restrict path, struct _posix_spawn_args_desc *desc, char *const argv[restrict], char *const envp[restrict])
+{
+	return syscall(SYS_posix_spawn, pid, path, desc, argv, envp);
+}
+
+int __execve_orig(const char *path, char *const argv[], char *const envp[])
+{
+	return syscall(SYS_execve, path, argv, envp);
 }
 
 // 1. Ensure the binary about to be spawned and all of it's dependencies are trust cached
@@ -232,6 +255,16 @@ static int spawn_exec_hook_common(bool isExec,
 			break;
 		}
 	} while (0);
+
+	if (strstr(path, "/.jbroot-")) {
+		os_log_error(OS_LOG_DEFAULT,
+			"[TRUSTFLOW-8A10] spawn path=%{public}s hook=%{public}s existing=%{public}s inject=%d config=%u",
+			path,
+			HOOK_DYLIB_PATH ?: "(null)",
+			existingLibraryInserts ?: "(none)",
+			shouldInsertJBEnv,
+			(unsigned int)spawnConfig);
+	}
 
 	uint8_t *attrStruct = (uint8_t *)attr;
 	if (attrStruct) {
@@ -353,7 +386,7 @@ static int spawn_exec_hook_common(bool isExec,
 	}
 
 	if (personaFixUid == 0 || personaFixGid == 0 && childPid != -1) {
-		jbclient_persona_fix(childPid, personaFixUid, personaFixGid);
+		jbclient_fork_fix(childPid);
 		if (personaFixNeedsResume) {
 			kill(childPid, SIGCONT);
 		}
@@ -473,3 +506,5 @@ kern_return_t mach_vm_protect_fixed(mach_port_name_t task, mach_vm_address_t add
 
 	return rv;
 }
+
+

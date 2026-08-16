@@ -2,7 +2,6 @@
 #define SIGNATURES_H
 
 #include <choma/CodeDirectory.h>
-#include <choma/Fat.h>
 
 typedef enum {
 	SIGNATURE_SOURCE_ALLOCATION,
@@ -25,3 +24,5 @@ void file_collect_signatures(int fd, struct siginfo **sigInfosOut, uint32_t *sig
 CS_SuperBlob *siginfo_resolve_superblob(struct siginfo *siginfo, int pid, int fd);
 int trust_signatures(int pid, int fd, struct siginfo *sigInfos, uint32_t sigInfoCount);
 #endif
+
+

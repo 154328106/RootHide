@@ -1,10 +1,14 @@
 #include <CoreFoundation/CoreFoundation.h>
 #include <spawn.h>
 #include <xpc/xpc.h>
+
+extern xpc_object_t xpc_create_from_plist(const void *buf, size_t len);
 #include "private.h"
 #include "inline.h"
 
-#define HOOK_DYLIB_PATH "/usr/lib/systemhook.dylib"
+// RootHide exposes systemhook under a per-jailbreak, jbrand-qualified path.
+// roothider_main.c resolves the path of the currently loaded image at startup.
+extern const char *HOOK_DYLIB_PATH;
 
 typedef enum 
 {
@@ -30,3 +34,5 @@ int execve_hook_shared(const char *path, char *const argv[], char *const envp[],
 volatile void *get_tpidrr0_el0(void);
 kern_return_t litehook_hook_memory_hookd(void *target, void *source, size_t sourceSize);
 kern_return_t mach_vm_protect_fixed(mach_port_name_t task, mach_vm_address_t address, mach_vm_size_t size, boolean_t set_maximum, vm_prot_t new_protection);
+
+

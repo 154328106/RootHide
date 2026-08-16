@@ -2,10 +2,11 @@
 #import <Foundation/Foundation.h>
 #import <libjailbreak/libjailbreak.h>
 #import <sys/mount.h>
-#import <libjailbreak/stock_fixes.h>
+#import <errno.h>
 
 SInt32 CFUserNotificationDisplayAlert(CFTimeInterval timeout, CFOptionFlags flags, CFURLRef iconURL, CFURLRef soundURL, CFURLRef localizationURL, CFStringRef alertHeader, CFStringRef alertMessage, CFStringRef defaultButtonTitle, CFStringRef alternateButtonTitle, CFStringRef otherButtonTitle, CFOptionFlags *responseFlags) API_AVAILABLE(ios(3.0));
 
+/*
 void execute_unsandboxed(void (^block)(void))
 {
 	uint64_t credBackup = 0;
@@ -91,6 +92,59 @@ int fakelib_set_mounted(bool mounted)
 	}
 	return r;
 }
+*/
+
+static bool fake_path_is_mounted(const char *path)
+{
+	struct statfs fsb;
+	if (statfs(path, &fsb) != 0) return false;
+	return strcmp(fsb.f_mntonname, path) == 0;
+}
+
+static NSString *fake_path_storage_path(NSString *path)
+{
+	return [JBROOT_PATH(@"/mnt") stringByAppendingString:path];
+}
+
+static int fake_path_prepare(NSString *path)
+{
+	NSFileManager *fileManager = [NSFileManager defaultManager];
+	BOOL isDirectory = NO;
+	if (![fileManager fileExistsAtPath:path isDirectory:&isDirectory] || !isDirectory) return ENOENT;
+
+	NSString *storagePath = fake_path_storage_path(path);
+	if ([fileManager fileExistsAtPath:storagePath]) return 0;
+
+	NSString *storageParent = [storagePath stringByDeletingLastPathComponent];
+	NSError *error = nil;
+	if (![fileManager createDirectoryAtPath:storageParent withIntermediateDirectories:YES attributes:nil error:&error]) {
+		return (int)(error.code ?: EIO);
+	}
+
+	NSString *temporaryPath = [storagePath stringByAppendingString:@".mounting"];
+	[fileManager removeItemAtPath:temporaryPath error:nil];
+	if (![fileManager copyItemAtPath:path toPath:temporaryPath error:&error]) return (int)(error.code ?: EIO);
+	if (![fileManager moveItemAtPath:temporaryPath toPath:storagePath error:&error]) {
+		[fileManager removeItemAtPath:temporaryPath error:nil];
+		return (int)(error.code ?: EIO);
+	}
+	return 0;
+}
+
+static int fake_path_set_mounted(bool mounted, const char *rawPath)
+{
+	if (!rawPath) return EINVAL;
+	NSString *path = [NSString stringWithUTF8String:rawPath];
+	NSString *standardPath = path.stringByStandardizingPath;
+	if (![path isEqualToString:standardPath] || ![path hasPrefix:@"/"] || [path isEqualToString:@"/"]) return EINVAL;
+
+	if (mounted == fake_path_is_mounted(rawPath)) return 0;
+	if (!mounted) return unmount(rawPath, MNT_FORCE);
+
+	int r = fake_path_prepare(path);
+	if (r != 0) return r;
+	return mount("bindfs", rawPath, MNT_RDONLY, (void *)fake_path_storage_path(path).fileSystemRepresentation);
+}
 
 int jbctl_handle_internal(const char *command, int argc, char* argv[])
 {
@@ -135,6 +189,7 @@ int jbctl_handle_internal(const char *command, int argc, char* argv[])
 		mach_port_deallocate(mach_task_self(), launchdTaskPort);
 		return 0;
 	}
+/*
 	else if (!strcmp(command, "protection")) {
 		bool toSet = false;
 		if (argc > 1) {
@@ -169,14 +224,29 @@ int jbctl_handle_internal(const char *command, int argc, char* argv[])
 		}
 		return -1;
 	}
+*/
 	else if (!strcmp(command, "startup")) {
-		protection_set_active(true);
+//		protection_set_active(true);
+
+JBLogDebug("jbctl startup: checking userspace panic ...");
+
 		char *panicMessage = NULL;
 		if (jbclient_watchdog_get_last_userspace_panic(&panicMessage) == 0) {
 			NSString *printMessage = [NSString stringWithFormat:@"Dopamine has protected you from a userspace panic by temporarily disabling tweak injection and triggering a userspace reboot instead. A log is available under Analytics in the Preferences app. You can reenable tweak injection in the Dopamine app.\n\nPanic message: \n%s", panicMessage];
 			CFUserNotificationDisplayAlert(0, 2/*kCFUserNotificationCautionAlertLevel*/, NULL, NULL, NULL, CFSTR("Watchdog Timeout"), (__bridge CFStringRef)printMessage, NULL, NULL, NULL, NULL);
 			free(panicMessage);
 		}
+
+
+/************************* roothide specific ***************************/
+//only bootstrap after launchdhook and systemhook available
+JBLogDebug("jbctl startup: bootstrapping launch daemons ...");
+exec_cmd(JBROOT_PATH("/usr/bin/launchctl"), "bootstrap", "system", "/Library/LaunchDaemons", NULL);
+
+JBLogDebug("jbctl startup: refreshing jailbroken apps ...");
+/************************* roothide specific ***************************/
+
+
 		exec_cmd(JBROOT_PATH("/usr/bin/uicache"), "-a", NULL);
 	}
 	else if (!strcmp(command, "install_pkg")) {
@@ -188,5 +258,16 @@ int jbctl_handle_internal(const char *command, int argc, char* argv[])
 		}
 		return -1;
 	}
+	else if (!strcmp(command, "mount") || !strcmp(command, "unmount")) {
+		if (argc <= 1 || !argv[1]) return EINVAL;
+
+		uint64_t credBackup = 0;
+		if (jbclient_root_steal_ucred(0, &credBackup) != 0) return EPERM;
+		int r = fake_path_set_mounted(!strcmp(command, "mount"), argv[1]);
+		jbclient_root_steal_ucred(credBackup, NULL);
+		return r;
+	}
 	return -1;
 }
+
+
