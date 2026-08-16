@@ -7,10 +7,9 @@ LDFLAGS = -dynamiclib -rpath @loader_path/fallback -L../.build -L../_external/li
 sign: $(TARGET)
 	@ldid -S $^
 
-$(TARGET): $(wildcard src/*.m src/*.c src/jbserver/*.c ../systemhook/src/common.c ../systemhook/src/common/envbuf.c ../systemhook/src/roothider_common.c)
+$(TARGET): $(wildcard src/*.m src/*.c src/jbserver/*.c ../systemhook/src/common.c ../systemhook/src/common/envbuf.c ../systemhook/src/roothider_common.c ../_external/modules/litehook/src/*.c)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
 
 clean:
 	@rm -f $(TARGET)
-
 

@@ -2,6 +2,7 @@
 
 #include <spawn.h>
 #include <substrate.h>
+#include <litehook.h>
 #include <stdlib.h>
 #include <sys/sysctl.h>
 #include <sys/utsname.h>
@@ -189,15 +190,16 @@ void roothide_launchd_postinit(bool firstLoad)
 
 #include <dlfcn.h>
 #include <IOKit/IOKitLib.h>
-void fix__iosConnect()
+static void fix__iosConnect(void)
 {
-    MSImageRef IOSurfaceImage = MSGetImageByName("/System/Library/Frameworks/IOSurface.framework/IOSurface");
-    JBLogDebug("IOSurfaceImage=%p\n", IOSurfaceImage);
-    assert(IOSurfaceImage != NULL);
-
-    io_service_t* __iosService = MSFindSymbol(IOSurfaceImage, "__iosService");
-    io_connect_t* __iosConnect = MSFindSymbol(IOSurfaceImage, "__iosConnect");
-    assert(__iosService != NULL && __iosConnect != NULL);
+    const char *iosurfacePath = "/System/Library/Frameworks/IOSurface.framework/IOSurface";
+    io_service_t *__iosService = litehook_find_dsc_symbol(iosurfacePath, "__iosService");
+    io_connect_t *__iosConnect = litehook_find_dsc_symbol(iosurfacePath, "__iosConnect");
+    if (!__iosService || !__iosConnect) {
+        JBLogError("Skipping IOSurface reconnect: private symbols unavailable (service=%p connect=%p)",
+                   __iosService, __iosConnect);
+        return;
+    }
 
     JBLogDebug("__iosService=%p __iosConnect=%p\n", __iosService, __iosConnect);
     JBLogDebug("*__iosService=%d *__iosConnect=%d\n", *__iosService, *__iosConnect);
@@ -207,20 +209,32 @@ void fix__iosConnect()
 
     *(void **)&IOServiceOpen = dlsym(RTLD_DEFAULT, "IOServiceOpen");
     *(void **)&IOServiceClose = dlsym(RTLD_DEFAULT, "IOServiceClose");
-    assert(IOServiceOpen != NULL && IOServiceClose != NULL);
+    if (!IOServiceOpen || !IOServiceClose) {
+        JBLogError("Skipping IOSurface reconnect: IOKit entry points unavailable");
+        return;
+    }
     
     io_connect_t old__iosConnect = *__iosConnect;
 
     if(old__iosConnect) {
+        if (!*__iosService) {
+            JBLogError("Skipping IOSurface reconnect: IOSurface service is unavailable");
+            return;
+        }
 
-        assert(*__iosService != 0);
+        io_connect_t new__iosConnect = IO_OBJECT_NULL;
+        kern_return_t kr = IOServiceOpen(*__iosService, mach_task_self(), 0, &new__iosConnect);
+        JBLogDebug("IOServiceOpen kr=%x, new iosConnect=%d\n", kr, new__iosConnect);
+        if (kr != KERN_SUCCESS || !new__iosConnect) {
+            JBLogError("Skipping IOSurface reconnect: IOServiceOpen failed (%x)", kr);
+            return;
+        }
 
-        kern_return_t kr = IOServiceOpen(*__iosService, mach_task_self(), 0, __iosConnect);
-        JBLogDebug("IOServiceOpen kr=%x, new iosConnect=%d\n", kr, *__iosConnect);
-        assert(kr == KERN_SUCCESS);
-
+        *__iosConnect = new__iosConnect;
         kr = IOServiceClose(old__iosConnect);
-        assert(kr == KERN_SUCCESS);
+        if (kr != KERN_SUCCESS) {
+            JBLogError("IOSurface reconnect succeeded, but closing the old connection failed (%x)", kr);
+        }
     }
 }
 
@@ -460,5 +474,4 @@ int roothide_launchd___posix_spawn_prehook(pid_t *restrict pidp, const char *res
 	
 	return __posix_spawn_hook(pidp, path, desc, argv, envp);
 }
-
 
