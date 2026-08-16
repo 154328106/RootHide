@@ -88,19 +88,19 @@ int superblob_find_cdflags_and_team_id(const CS_SuperBlob *superblob, off_t *cdf
 	const uint8_t *base = (const uint8_t *)superblob;
 	uint32_t superLen  = OSSwapBigToHostInt32(superblob->length);
 	uint32_t count      = OSSwapBigToHostInt32(superblob->count);
- 
+
 	size_t indexBytes = (size_t)count * sizeof(CS_BlobIndex);
 	if (superLen < sizeof(CS_SuperBlob) || indexBytes > superLen - sizeof(CS_SuperBlob)) {
 		return -1;
 	}
-	
+
 	// Find best ranked code directory
 	const CS_BlobIndex *bestCdIndex = NULL;
 	int bestCdRank = 0;
 	for (uint32_t i = 0; i < count; i++) {
 		uint32_t type     = OSSwapBigToHostInt32(superblob->index[i].type);
 		uint32_t cdOffset = OSSwapBigToHostInt32(superblob->index[i].offset);
- 
+
 		if (type == CSSLOT_CODEDIRECTORY || ((CSSLOT_ALTERNATE_CODEDIRECTORIES <= type && type < CSSLOT_ALTERNATE_CODEDIRECTORY_LIMIT))) {
 			if (cdOffset > superLen || superLen - cdOffset < sizeof(CS_CodeDirectory)) {
 				return -1;
@@ -131,18 +131,18 @@ bool superblob_is_adhoc_signed(const CS_SuperBlob *superblob)
 	const uint8_t *base = (const uint8_t *)superblob;
 	uint32_t superLen  = OSSwapBigToHostInt32(superblob->length);
 	uint32_t count      = OSSwapBigToHostInt32(superblob->count);
- 
+
 	size_t indexBytes = (size_t)count * sizeof(CS_BlobIndex);
 	if (superLen < sizeof(CS_SuperBlob) || indexBytes > superLen - sizeof(CS_SuperBlob)) {
 		return -1;
 	}
-	
+
 	// Find signature slot
 	const CS_GenericBlob *wrapperBlob = NULL;
 	for (uint32_t i = 0; i < count; i++) {
 		uint32_t type     = OSSwapBigToHostInt32(superblob->index[i].type);
 		uint32_t cdOffset = OSSwapBigToHostInt32(superblob->index[i].offset);
- 
+
 		if (type == CSSLOT_SIGNATURESLOT) {
 			if (cdOffset > superLen || superLen - cdOffset < sizeof(CS_CodeDirectory)) {
 				return true;
@@ -284,3 +284,5 @@ int HOOK(__fcntl)(int fd, int cmd, void *arg1, void *arg2, void *arg3, void *arg
 
 	return (int)msyscall_errno(0x5C, fd, cmd, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
 }
+
+
