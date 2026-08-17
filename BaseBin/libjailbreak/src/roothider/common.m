@@ -547,6 +547,37 @@ void hideDeveloperMode()
     oid_insert(launch_env_logging.oid_parent, (struct sysctl_oid*)launch_env_logging_oidp);
 }
 
+static int append_unmodified_cdhashes(const char *path, cdhash_t **hashes, uint32_t *hashCount)
+{
+    Fat *fat = fat_init_from_path(path);
+    if (!fat) return -1;
+
+    __block int ret = 0;
+    fat_enumerate_slices(fat, ^(MachO *macho, bool *stop) {
+        if (!macho_is_mappable(macho)) return;
+
+        cdhash_t cdhash = {0};
+        if (!macho_parse_code_signature(macho, cdhash)) {
+            ret = -2;
+            *stop = true;
+            return;
+        }
+
+        cdhash_t *newHashes = realloc(*hashes, (*hashCount + 1) * sizeof(cdhash_t));
+        if (!newHashes) {
+            ret = -3;
+            *stop = true;
+            return;
+        }
+        *hashes = newHashes;
+        memcpy(&(*hashes)[*hashCount], cdhash, sizeof(cdhash_t));
+        (*hashCount)++;
+    });
+
+    fat_free(fat);
+    return ret;
+}
+
 int randomizeAndLoadBasebinTrustcache(const char* basebinPath)
 {
     cdhash_t* basebins_cdhashes=NULL;
@@ -561,6 +592,18 @@ int randomizeAndLoadBasebinTrustcache(const char* basebinPath)
         NSNumber* isFile = nil;
         [fileURL getResourceValue:&isFile forKey:NSURLIsRegularFileKey error:nil];
         if(!isFile || !isFile.boolValue) continue;
+
+        // jbctl is executed directly before RootHide's launchd service exists.
+        // On iOS 17, modifying its first signed page makes posix_spawn reject
+        // it with EBADEXEC, even when the resulting cdhash is trusted.
+        if ([fileURL.lastPathComponent isEqualToString:@"jbctl"]) {
+            if (append_unmodified_cdhashes(fileURL.path.fileSystemRepresentation, &basebins_cdhashes, &basebins_cdhashesCount) != 0) {
+                JBLogError("Failed to collect original jbctl cdhash: %s", fileURL.path.fileSystemRepresentation);
+                free(basebins_cdhashes);
+                return -5;
+            }
+            continue;
+        }
 
         cdhash_t cdhash={0};
         if(ensure_randomized_cdhash(fileURL.path.fileSystemRepresentation, cdhash) == 0) {
@@ -976,6 +1019,5 @@ int wait_for_exit(pid_t pid)
         }
     }
 }
-
 
 

@@ -363,29 +363,6 @@ sets[idx] = NULL;
             userInfo:@{NSLocalizedDescriptionKey : [NSString stringWithFormat:@"Failed to load BaseBin trustcache: %d", ret]}];
     }
 
-    // jbctl is spawned before the RootHide service is available. Verify that
-    // the randomized cdhash made it into the kernel trust cache and add an
-    // isolated fallback cache if a directory scan missed it.
-    const char *jbctlPath = JBROOT_PATH("/basebin/jbctl");
-    cdhash_t jbctlCDHash = {0};
-    ret = ensure_randomized_cdhash(jbctlPath, jbctlCDHash);
-    if (ret != 0) {
-        return [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedBasebinTrustcache
-            userInfo:@{NSLocalizedDescriptionKey : [NSString stringWithFormat:@"Failed to prepare jbctl cdhash: %d", ret]}];
-    }
-    if (!is_cdhash_trustcached(jbctlCDHash)) {
-        trustcache_file_v1 *jbctlTcFile = NULL;
-        ret = trustcache_file_build_from_cdhashes(&jbctlCDHash, 1, &jbctlTcFile);
-        if (ret == 0) {
-            uuid_t jbctlTcUUID = {'J','B','C','T','L','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0'};
-            ret = trustcache_file_upload_with_uuid(jbctlTcFile, jbctlTcUUID);
-            free(jbctlTcFile);
-        }
-        if (ret != 0 || !is_cdhash_trustcached(jbctlCDHash)) {
-            return [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedBasebinTrustcache
-                userInfo:@{NSLocalizedDescriptionKey : [NSString stringWithFormat:@"Failed to verify jbctl trustcache: %d", ret]}];
-        }
-    }
     return nil;
 }
 /************************ roothide specific ******************/
