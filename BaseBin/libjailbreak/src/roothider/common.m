@@ -21,6 +21,12 @@
 #include "common.h"
 #include "log.h"
 
+// These helpers are implemented in signatures.c but are not part of its
+// public header. The BaseBin loader needs them to preserve jbctl's original
+// executable hash on iOS 17.
+bool macho_is_mappable(MachO *macho);
+bool macho_parse_code_signature(MachO *macho, cdhash_t cdhashOut);
+
 bool launchdhookFirstLoad = false;
 
 // To replace dyld patch, make dyld respect DYLD_ environment variables
@@ -1019,5 +1025,4 @@ int wait_for_exit(pid_t pid)
         }
     }
 }
-
 
