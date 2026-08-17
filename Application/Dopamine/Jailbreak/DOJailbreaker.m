@@ -722,6 +722,20 @@ else {
     }
 }
 
+bool bootstrapFinalizedBeforeSystemHook = false;
+if (@available(iOS 17.0, *)) {
+    // exec_set_patch prepares every spawned child. The initial bootstrap
+    // finalizer is itself a chain of rootless helper processes, so finish it
+    // before enabling that preparation policy on the SPTM path.
+    [[DOUIManager sharedInstance] sendLog:DOLocalizedString(@"iOS 17+: finalizing bootstrap before SystemHook") debug:NO];
+    *errOut = [self finalizeBootstrapIfNeeded];
+    if (*errOut) {
+        [self cleanUpPostExploitation];
+        return;
+    }
+    bootstrapFinalizedBeforeSystemHook = true;
+}
+
 [[DOUIManager sharedInstance] sendLog:DOLocalizedString(@"RootHide: enabling SystemHook") debug:NO];
 exec_set_patch(true); /* launchdhook injected and dyld patched, 
 now we can enable dyld patching for new process */
@@ -748,24 +762,13 @@ setenv("DYLD_INSERT_LIBRARIES", JBROOT_PATH("/basebin/systemhook.dylib"), 1);
         exec_cmd_trusted(JBROOT_PATH("/usr/bin/killall"), "-9", "iconservicesagent", NULL);
     }
     
-    [[DOUIManager sharedInstance] sendLog:DOLocalizedString(@"RootHide: finalizing bootstrap") debug:NO];
-    bool restoreSystemHookForFinalization = false;
-    if (@available(iOS 17.0, *)) {
-        // The first bootstrap script launches several rootless helper tools.
-        // Do not inject SystemHook into that one-time installation process;
-        // with the stock-dyld policy it can wait forever before the script
-        // itself starts. Re-enable the normal environment immediately after.
-        restoreSystemHookForFinalization = true;
-        unsetenv("DYLD_INSERT_LIBRARIES");
-        [[DOUIManager sharedInstance] sendLog:DOLocalizedString(@"iOS 17+: finalizing bootstrap without SystemHook injection") debug:NO];
-    }
-    *errOut = [self finalizeBootstrapIfNeeded];
-    if (restoreSystemHookForFinalization) {
-        setenv("DYLD_INSERT_LIBRARIES", JBROOT_PATH("/basebin/systemhook.dylib"), 1);
-    }
-    if (*errOut) {
-        [self cleanUpPostExploitation];
-        return;
+    if (!bootstrapFinalizedBeforeSystemHook) {
+        [[DOUIManager sharedInstance] sendLog:DOLocalizedString(@"RootHide: finalizing bootstrap") debug:NO];
+        *errOut = [self finalizeBootstrapIfNeeded];
+        if (*errOut) {
+            [self cleanUpPostExploitation];
+            return;
+        }
     }
     [[DOEnvironmentManager sharedManager] restoreFakeMounts];
     
