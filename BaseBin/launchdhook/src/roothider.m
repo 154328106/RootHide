@@ -97,6 +97,13 @@ bool roothide_is_ios16_or_newer(void)
 	return strtol(systemInfo.release, NULL, 10) >= 22;
 }
 
+static bool roothide_is_ios17_or_newer(void)
+{
+	struct utsname systemInfo = {0};
+	if (uname(&systemInfo) != 0) return false;
+	return strtol(systemInfo.release, NULL, 10) >= 23;
+}
+
 void roothide_launchd_preinit()
 {
 	JBLogDebug("roothide_launchd_preinit");
@@ -139,16 +146,30 @@ void roothide_launchd_postinit(bool firstLoad)
 	{		
 		NSString* systemhookFilePath = [NSString stringWithFormat:@"%@/systemhook-%016llX.dylib", JBROOT_PATH(@"/basebin"), jbinfo(jbrand)];
 
-		if([NSFileManager.defaultManager fileExistsAtPath:JBROOT_PATH(@"/basebin/systemhook.dylib")])
-		{
-			[NSFileManager.defaultManager removeItemAtPath:systemhookFilePath error:nil];
-			assert([NSFileManager.defaultManager moveItemAtPath:JBROOT_PATH(@"/basebin/systemhook.dylib") toPath:systemhookFilePath error:nil]);
+		if (roothide_is_ios17_or_newer()) {
+			// unsandbox2 rewrites the SMR-protected kernel namecache list to
+			// disguise this dylib as /usr/lib content. That list layout changed
+			// on iOS 17 and the rewrite panics launchd during userspace reboot.
+			// Keep the genuine jbroot path on iOS 17+; injection still works,
+			// only this path-hiding optimization is disabled.
+			NSString *nativeSystemhookPath = JBROOT_PATH(@"/basebin/systemhook.dylib");
+			if (![NSFileManager.defaultManager fileExistsAtPath:nativeSystemhookPath]) {
+				nativeSystemhookPath = systemhookFilePath;
+			}
+			HOOK_DYLIB_PATH = strdup(nativeSystemhookPath.fileSystemRepresentation);
 		}
-		
-		assert(unsandbox("/usr/lib", systemhookFilePath.fileSystemRepresentation) == 0);
+		else {
+			if([NSFileManager.defaultManager fileExistsAtPath:JBROOT_PATH(@"/basebin/systemhook.dylib")])
+			{
+				[NSFileManager.defaultManager removeItemAtPath:systemhookFilePath error:nil];
+				assert([NSFileManager.defaultManager moveItemAtPath:JBROOT_PATH(@"/basebin/systemhook.dylib") toPath:systemhookFilePath error:nil]);
+			}
+			
+			assert(unsandbox("/usr/lib", systemhookFilePath.fileSystemRepresentation) == 0);
 
-		//new "real path"
-		asprintf(&HOOK_DYLIB_PATH, "/usr/lib/systemhook-%016llX.dylib", jbinfo(jbrand));
+			//new "real path"
+			asprintf(&HOOK_DYLIB_PATH, "/usr/lib/systemhook-%016llX.dylib", jbinfo(jbrand));
+		}
 	}
 
 	if (roothide_is_ios16_or_newer())
@@ -474,4 +495,3 @@ int roothide_launchd___posix_spawn_prehook(pid_t *restrict pidp, const char *res
 	
 	return __posix_spawn_hook(pidp, path, desc, argv, envp);
 }
-
