@@ -1303,6 +1303,17 @@ int getCFMajorVersion(void)
     // Initial setup on first jailbreak
     if ([[NSFileManager defaultManager] fileExistsAtPath:jbrootPrefix(@"/prep_bootstrap.sh")]) {
         [[DOUIManager sharedInstance] sendLog:@"Finalizing Bootstrap" debug:NO];
+        if (@available(iOS 17.0, *)) {
+            // dash depends on this bootstrap-provided library. Trusting only
+            // the shell executable is insufficient on SPTM devices: dyld
+            // validates each dependent image independently.
+            const char *iosexecPath = JBROOT_PATH("/usr/lib/libiosexec.1.dylib");
+            int trustStatus = jbclient_trust_file_by_path(iosexecPath);
+            if (trustStatus != 0) {
+                return [NSError errorWithDomain:bootstrapErrorDomain code:BootstrapErrorCodeFailedFinalising userInfo:@{NSLocalizedDescriptionKey : [NSString stringWithFormat:@"Failed to trust libiosexec: %d", trustStatus]}];
+            }
+            [[DOUIManager sharedInstance] sendLog:@"iOS 17+: trusted bootstrap runtime library" debug:NO];
+        }
         int r = exec_cmd_trusted(JBROOT_PATH("/bin/sh"), JBROOT_PATH("/prep_bootstrap.sh"), NULL);
         if (r != 0) {
             return [NSError errorWithDomain:bootstrapErrorDomain code:BootstrapErrorCodeFailedFinalising userInfo:@{NSLocalizedDescriptionKey : [NSString stringWithFormat:@"prep_bootstrap.sh returned %d\n", r]}];
