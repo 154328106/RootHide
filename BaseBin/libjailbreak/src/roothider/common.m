@@ -599,12 +599,15 @@ int randomizeAndLoadBasebinTrustcache(const char* basebinPath)
         [fileURL getResourceValue:&isFile forKey:NSURLIsRegularFileKey error:nil];
         if(!isFile || !isFile.boolValue) continue;
 
-        // jbctl is executed directly before RootHide's launchd service exists.
-        // On iOS 17, modifying its first signed page makes posix_spawn reject
-        // it with EBADEXEC, even when the resulting cdhash is trusted.
-        if ([fileURL.lastPathComponent isEqualToString:@"jbctl"]) {
+        // These two files run before RootHide's launchd service is available.
+        // On iOS 17, modifying their first signed page makes posix_spawn or
+        // launchd's dlopen reject them, even when the resulting cdhash is
+        // trusted. Keep their original executable signatures and trust those
+        // hashes alongside the randomized BaseBin entries.
+        if ([fileURL.lastPathComponent isEqualToString:@"jbctl"] ||
+            [fileURL.lastPathComponent isEqualToString:@"launchdhook.dylib"]) {
             if (append_unmodified_cdhashes(fileURL.path.fileSystemRepresentation, &basebins_cdhashes, &basebins_cdhashesCount) != 0) {
-                JBLogError("Failed to collect original jbctl cdhash: %s", fileURL.path.fileSystemRepresentation);
+                JBLogError("Failed to collect original early-boot cdhash: %s", fileURL.path.fileSystemRepresentation);
                 free(basebins_cdhashes);
                 return -5;
             }
@@ -1025,4 +1028,3 @@ int wait_for_exit(pid_t pid)
         }
     }
 }
-
