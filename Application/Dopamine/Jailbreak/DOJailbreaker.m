@@ -738,7 +738,15 @@ setenv("DYLD_INSERT_LIBRARIES", JBROOT_PATH("/basebin/systemhook.dylib"), 1);
 /******************************** roothide specific *************************/
     
     // Unsandbox iconservicesagent so that app icons can work
-    exec_cmd_trusted(JBROOT_PATH("/usr/bin/killall"), "-9", "iconservicesagent", NULL);
+    if (@available(iOS 17.0, *)) {
+        // The following userspace reboot restarts the relevant services anyway.
+        // On the SPTM path, waiting for a freshly SystemHook-injected killall
+        // can block this bootstrap thread indefinitely.
+        [[DOUIManager sharedInstance] sendLog:DOLocalizedString(@"iOS 17+: icon services refresh deferred to userspace reboot") debug:NO];
+    }
+    else {
+        exec_cmd_trusted(JBROOT_PATH("/usr/bin/killall"), "-9", "iconservicesagent", NULL);
+    }
     
     [[DOUIManager sharedInstance] sendLog:DOLocalizedString(@"RootHide: finalizing bootstrap") debug:NO];
     *errOut = [self finalizeBootstrapIfNeeded];
