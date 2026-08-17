@@ -407,8 +407,20 @@ void *boomerang_server(struct boomerang_info *info)
     posix_spawnattr_set_registered_ports_np(&attr, (mach_port_t[]){MACH_PORT_NULL, MACH_PORT_NULL, serverPort}, 3);
     pid_t spawnedPid = 0;
     const char *jbctlPath = JBROOT_PATH("/basebin/jbctl");
+
+    // This launchd handoff has to use posix_spawn directly so that the
+    // boomerang port survives into jbctl. Unlike RootHide's normal spawn
+    // wrapper, that bypasses its executable trust preparation. On a fresh
+    // randomized BaseBin this can make spawn reject jbctl before it runs.
+    int trustError = jbclient_trust_executable_recurse(jbctlPath, NULL);
+    if (trustError != 0) {
+        posix_spawnattr_destroy(&attr);
+        return [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedLaunchdInjection userInfo:@{NSLocalizedDescriptionKey : [NSString stringWithFormat:@"Preparing jbctl trust failed with error code %d", trustError]}];
+    }
+
     int spawnError = posix_spawn(&spawnedPid, jbctlPath, NULL, &attr, (char *const *)(const char *[]){ jbctlPath, "internal", "launchd_stash_port", NULL }, NULL);
     if (spawnError != 0) {
+        posix_spawnattr_destroy(&attr);
         return [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedLaunchdInjection userInfo:@{NSLocalizedDescriptionKey : [NSString stringWithFormat:@"Spawning jbctl failed with error code %d", spawnError]}];
     }
     posix_spawnattr_destroy(&attr);
@@ -886,4 +898,3 @@ setenv("DYLD_INSERT_LIBRARIES", JBROOT_PATH("/basebin/systemhook.dylib"), 1);
 }
 
 @end
-
