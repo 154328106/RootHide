@@ -127,9 +127,17 @@ void roothide_launchd_postinit(bool firstLoad)
 	{
 		HOOK_DYLIB_PATH = "";
 		
-		if (roothide_is_ios16_or_newer())
+		if (roothide_is_ios16_or_newer() && !roothide_is_ios17_or_newer())
 		{
 			hideDeveloperMode();
+		}
+		else if (roothide_is_ios17_or_newer())
+		{
+			// Dopamine enables Developer Mode from the app before launchd is
+			// injected.  Do not touch the kernel Developer Mode state again
+			// from launchd on iOS 17+: this avoids a second raw kernel write
+			// while userspace reboot is being prepared.
+			JBLogDebug("iOS 17+: leaving Developer Mode state to Dopamine");
 		}
 		
 #ifdef __arm64e__
