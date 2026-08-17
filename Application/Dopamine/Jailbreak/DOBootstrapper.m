@@ -1304,15 +1304,24 @@ int getCFMajorVersion(void)
     if ([[NSFileManager defaultManager] fileExistsAtPath:jbrootPrefix(@"/prep_bootstrap.sh")]) {
         [[DOUIManager sharedInstance] sendLog:@"Finalizing Bootstrap" debug:NO];
         if (@available(iOS 17.0, *)) {
-            // dash depends on this bootstrap-provided library. Trusting only
-            // the shell executable is insufficient on SPTM devices: dyld
-            // validates each dependent image independently.
-            const char *iosexecPath = JBROOT_PATH("/usr/lib/libiosexec.1.dylib");
-            int trustStatus = jbclient_trust_file_by_path(iosexecPath);
-            if (trustStatus != 0) {
-                return [NSError errorWithDomain:bootstrapErrorDomain code:BootstrapErrorCodeFailedFinalising userInfo:@{NSLocalizedDescriptionKey : [NSString stringWithFormat:@"Failed to trust libiosexec: %d", trustStatus]}];
+            // dyld validates each dependent bootstrap image separately on
+            // SPTM devices. Stage the complete, freshly extracted bootstrap
+            // runtime library set rather than only the shell executable.
+            NSString *libraryRoot = JBROOT_PATH(@"/usr/lib");
+            NSDirectoryEnumerator<NSString *> *enumerator = [[NSFileManager defaultManager] enumeratorAtPath:libraryRoot];
+            for (NSString *relativePath in enumerator) {
+                if (![relativePath.pathExtension isEqualToString:@"dylib"]) continue;
+
+                NSString *libraryPath = [libraryRoot stringByAppendingPathComponent:relativePath];
+                NSDictionary *attributes = [[NSFileManager defaultManager] attributesOfItemAtPath:libraryPath error:nil];
+                if (![attributes[NSFileType] isEqualToString:NSFileTypeRegular]) continue;
+
+                int trustStatus = jbclient_trust_file_by_path(libraryPath.fileSystemRepresentation);
+                if (trustStatus != 0) {
+                    return [NSError errorWithDomain:bootstrapErrorDomain code:BootstrapErrorCodeFailedFinalising userInfo:@{NSLocalizedDescriptionKey : [NSString stringWithFormat:@"Failed to trust bootstrap library %@: %d", relativePath, trustStatus]}];
+                }
             }
-            [[DOUIManager sharedInstance] sendLog:@"iOS 17+: trusted bootstrap runtime library" debug:NO];
+            [[DOUIManager sharedInstance] sendLog:@"iOS 17+: trusted bootstrap runtime libraries" debug:NO];
         }
         int r = exec_cmd_trusted(JBROOT_PATH("/bin/sh"), JBROOT_PATH("/prep_bootstrap.sh"), NULL);
         if (r != 0) {
