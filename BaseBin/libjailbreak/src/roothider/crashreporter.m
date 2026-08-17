@@ -448,8 +448,26 @@ void *crashreporter_listen(void *arg)
 }
 
 int gCrashReporterStateKey = 0;
+
+// iOS 17 hardens exception-port manipulation for launchd. Installing our
+// Mach exception handler from PID 1 trips the system guard and makes launchd
+// exit, which in turn causes a kernel panic. Keep this legacy reporter on
+// iOS 16 and earlier only; it is diagnostic-only and not required for the
+// jailbreak itself.
+static bool crashreporter_exception_ports_allowed(void)
+{
+	if (@available(iOS 17.0, *)) {
+		return false;
+	}
+	return true;
+}
+
 int crashreporter_pause(void)
 {
+	if (!crashreporter_exception_ports_allowed()) {
+		return 0;
+	}
+
 	int key = 0;
 	@synchronized(@"CrashReporterStateKey")
 	{
@@ -467,6 +485,10 @@ int crashreporter_pause(void)
 
 void crashreporter_resume(int key)
 {
+	if (!crashreporter_exception_ports_allowed()) {
+		return;
+	}
+
 	@synchronized(@"CrashReporterStateKey")
 	{
 		if(key == gCrashReporterStateKey)
@@ -582,6 +604,10 @@ int sigcatch[] = {
 
 void crashreporter_start()
 {
+	if (!crashreporter_exception_ports_allowed()) {
+		return;
+	}
+
 	char pathbuf[PATH_MAX] = {0};
 	uint32_t pathlen = sizeof(pathbuf);
 	_NSGetExecutablePath(pathbuf, &pathlen);
@@ -602,6 +628,5 @@ void crashreporter_start()
 		crashreporter_resume(0);
 	}
 }
-
 
 
