@@ -773,7 +773,19 @@ setenv("DYLD_INSERT_LIBRARIES", JBROOT_PATH("/basebin/systemhook.dylib"), 1);
     [[DOEnvironmentManager sharedManager] restoreFakeMounts];
     
     [[DOUIManager sharedInstance] sendLog:DOLocalizedString(@"RootHide: restoring environment") debug:NO];
-    [[DOEnvironmentManager sharedManager] setIDownloadEnabled:idownloadEnabled needsUnsandbox:NO];
+    if (@available(iOS 17.0, *)) {
+        if (idownloadEnabled) {
+            [[DOEnvironmentManager sharedManager] setIDownloadEnabled:YES needsUnsandbox:NO];
+        }
+        else {
+            // A fresh bootstrap has not loaded this optional daemon. Avoid a
+            // launchctl disable call before userspace reboot on the SPTM path.
+            [[DOUIManager sharedInstance] sendLog:DOLocalizedString(@"iOS 17+: iDownload remains disabled until reboot") debug:NO];
+        }
+    }
+    else {
+        [[DOEnvironmentManager sharedManager] setIDownloadEnabled:idownloadEnabled needsUnsandbox:NO];
+    }
     
 /*
     [[DOUIManager sharedInstance] sendLog:DOLocalizedString(@"Checking For Duplicate Apps") debug:NO];
