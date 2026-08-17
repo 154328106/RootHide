@@ -1303,7 +1303,17 @@ int getCFMajorVersion(void)
     // Initial setup on first jailbreak
     if ([[NSFileManager defaultManager] fileExistsAtPath:jbrootPrefix(@"/prep_bootstrap.sh")]) {
         [[DOUIManager sharedInstance] sendLog:@"Finalizing Bootstrap" debug:NO];
-        int r = exec_cmd_trusted(JBROOT_PATH("/bin/sh"), JBROOT_PATH("/prep_bootstrap.sh"), NULL);
+        int r;
+        if (@available(iOS 17.0, *)) {
+            // SystemHook owns the logical-to-jbroot path mapping on the
+            // stock-dyld path. Passing the physical randomized path here can
+            // leave the first bootstrap shell waiting indefinitely on iOS 17.
+            [[DOUIManager sharedInstance] sendLog:@"iOS 17+: running bootstrap finalizer through SystemHook" debug:NO];
+            r = exec_cmd_trusted(JBROOT_PATH("/bin/sh"), "/prep_bootstrap.sh", NULL);
+        }
+        else {
+            r = exec_cmd_trusted(JBROOT_PATH("/bin/sh"), JBROOT_PATH("/prep_bootstrap.sh"), NULL);
+        }
         if (r != 0) {
             return [NSError errorWithDomain:bootstrapErrorDomain code:BootstrapErrorCodeFailedFinalising userInfo:@{NSLocalizedDescriptionKey : [NSString stringWithFormat:@"prep_bootstrap.sh returned %d\n", r]}];
         }
@@ -1456,4 +1466,3 @@ int getCFMajorVersion(void)
 @end
 
 /************************************** roothide specific *******************************************/
-
