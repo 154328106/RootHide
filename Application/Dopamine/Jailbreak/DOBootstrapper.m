@@ -15,6 +15,7 @@
 #import <sys/mount.h>
 #import <dlfcn.h>
 #import <sys/stat.h>
+#import <mach-o/loader.h>
 #import "NSString+Version.h"
 
 #define LIBKRW_DOPAMINE_BUNDLED_VERSION @"2.0.3"
@@ -43,6 +44,17 @@ struct hfs_mount_args {
 NSString *const bootstrapErrorDomain = @"BootstrapErrorDomain";
 
 #define BUFFER_SIZE 8192
+
+static BOOL DOBootstrapperIsMachOFile(NSString *path)
+{
+    FILE *file = fopen(path.fileSystemRepresentation, "rb");
+    if (!file) return NO;
+
+    uint32_t magic = 0;
+    size_t count = fread(&magic, sizeof(magic), 1, file);
+    fclose(file);
+    return count == 1 && (magic == MH_MAGIC_64 || magic == MH_CIGAM_64);
+}
 
 @implementation DOBootstrapper
 
@@ -1304,24 +1316,25 @@ int getCFMajorVersion(void)
     if ([[NSFileManager defaultManager] fileExistsAtPath:jbrootPrefix(@"/prep_bootstrap.sh")]) {
         [[DOUIManager sharedInstance] sendLog:@"Finalizing Bootstrap" debug:NO];
         if (@available(iOS 17.0, *)) {
-            // dyld validates each dependent bootstrap image separately on
-            // SPTM devices. Stage the complete, freshly extracted bootstrap
-            // runtime library set rather than only the shell executable.
-            NSString *libraryRoot = JBROOT_PATH(@"/usr/lib");
-            NSDirectoryEnumerator<NSString *> *enumerator = [[NSFileManager defaultManager] enumeratorAtPath:libraryRoot];
+            // The stock-dyld SPTM path validates every bootstrap Mach-O image
+            // independently. Trust the freshly extracted runtime set, not
+            // only dash and its direct dylibs; shell helpers are Mach-O too.
+            NSString *bootstrapRoot = jbrootPrefix(@"/");
+            NSDirectoryEnumerator<NSString *> *enumerator = [[NSFileManager defaultManager] enumeratorAtPath:bootstrapRoot];
+            NSUInteger trustedImageCount = 0;
             for (NSString *relativePath in enumerator) {
-                if (![relativePath.pathExtension isEqualToString:@"dylib"]) continue;
-
-                NSString *libraryPath = [libraryRoot stringByAppendingPathComponent:relativePath];
-                NSDictionary *attributes = [[NSFileManager defaultManager] attributesOfItemAtPath:libraryPath error:nil];
+                NSString *imagePath = [bootstrapRoot stringByAppendingPathComponent:relativePath];
+                NSDictionary *attributes = [[NSFileManager defaultManager] attributesOfItemAtPath:imagePath error:nil];
                 if (![attributes[NSFileType] isEqualToString:NSFileTypeRegular]) continue;
+                if (!DOBootstrapperIsMachOFile(imagePath)) continue;
 
-                int trustStatus = jbclient_trust_file_by_path(libraryPath.fileSystemRepresentation);
+                int trustStatus = jbclient_trust_file_by_path(imagePath.fileSystemRepresentation);
                 if (trustStatus != 0) {
-                    return [NSError errorWithDomain:bootstrapErrorDomain code:BootstrapErrorCodeFailedFinalising userInfo:@{NSLocalizedDescriptionKey : [NSString stringWithFormat:@"Failed to trust bootstrap library %@: %d", relativePath, trustStatus]}];
+                    return [NSError errorWithDomain:bootstrapErrorDomain code:BootstrapErrorCodeFailedFinalising userInfo:@{NSLocalizedDescriptionKey : [NSString stringWithFormat:@"Failed to trust bootstrap runtime %@: %d", relativePath, trustStatus]}];
                 }
+                trustedImageCount++;
             }
-            [[DOUIManager sharedInstance] sendLog:@"iOS 17+: trusted bootstrap runtime libraries" debug:NO];
+            [[DOUIManager sharedInstance] sendLog:[NSString stringWithFormat:@"iOS 17+: trusted %lu bootstrap runtime images", (unsigned long)trustedImageCount] debug:NO];
         }
         int r = exec_cmd_trusted(JBROOT_PATH("/bin/sh"), JBROOT_PATH("/prep_bootstrap.sh"), NULL);
         if (r != 0) {
