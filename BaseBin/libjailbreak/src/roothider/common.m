@@ -519,38 +519,25 @@ void oid_insert(struct sysctl_oid_list* oid_parent, struct sysctl_oid* oid)
     }
 }
 
+void ensureDeveloperModeEnabled()
+{
+    uint64_t developerModeStorage = 0;
+    if (ksymbol(developer_mode_enabled)) {
+        developerModeStorage = kread64(ksymbol(developer_mode_enabled));
+    }
+    else if (ksymbol_txm(txm_developer_mode_storage)) {
+        developerModeStorage = ksymbol_txm(txm_developer_mode_storage);
+    }
+    if (developerModeStorage) kwrite8(developerModeStorage, 1);
+}
+
 void hideDeveloperMode()
 {
-    uint64_t developer_mode_status_oidp = ksymbol(developer_mode_status)-offsetof(struct sysctl_oid,oid_name);
-    uint64_t launch_env_logging_oidp = ksymbol(launch_env_logging)-offsetof(struct sysctl_oid,oid_name);
-
-    struct sysctl_oid developer_mode_status={0};
-    kreadbuf(developer_mode_status_oidp, &developer_mode_status, sizeof(developer_mode_status));
-
-    struct sysctl_oid launch_env_logging={0};
-    kreadbuf(launch_env_logging_oidp, &launch_env_logging, sizeof(launch_env_logging));
-
-    //detach
-    oid_remove(developer_mode_status.oid_parent, (struct sysctl_oid*)developer_mode_status_oidp);
-    oid_remove(launch_env_logging.oid_parent, (struct sysctl_oid*)launch_env_logging_oidp);
-
-    //reorder
-    kwrite32(developer_mode_status_oidp+offsetof(struct sysctl_oid,oid_number), (uint64_t)launch_env_logging.oid_number);
-    kwrite32(launch_env_logging_oidp+offsetof(struct sysctl_oid,oid_number), (uint64_t)developer_mode_status.oid_number);
-
-    //exchange data
-    kwrite64(developer_mode_status_oidp+offsetof(struct sysctl_oid,oid_name), (uint64_t)launch_env_logging.oid_name);
-    kwrite64(launch_env_logging_oidp+offsetof(struct sysctl_oid,oid_name), (uint64_t)developer_mode_status.oid_name);
-
-    kwrite64(developer_mode_status_oidp+offsetof(struct sysctl_oid,oid_descr), (uint64_t)launch_env_logging.oid_descr);
-    kwrite64(launch_env_logging_oidp+offsetof(struct sysctl_oid,oid_descr), (uint64_t)developer_mode_status.oid_descr);
-
-    kwrite32(developer_mode_status_oidp+offsetof(struct sysctl_oid,oid_kind), (uint64_t)launch_env_logging.oid_kind);
-    kwrite32(launch_env_logging_oidp+offsetof(struct sysctl_oid,oid_kind), (uint64_t)developer_mode_status.oid_kind);
-
-    //attach
-    oid_insert(developer_mode_status.oid_parent, (struct sysctl_oid*)developer_mode_status_oidp);
-    oid_insert(launch_env_logging.oid_parent, (struct sysctl_oid*)launch_env_logging_oidp);
+    // iOS 17 uses SMR-protected sysctl lists. The historic RootHide approach
+    // removed and reinserted the developer-mode OIDs, which corrupts that list
+    // during a userspace reboot and panics launchd. Prioritize a working
+    // Developer Mode over that cosmetic hiding behavior on modern systems.
+    ensureDeveloperModeEnabled();
 }
 
 static int append_unmodified_cdhashes(const char *path, cdhash_t **hashes, uint32_t *hashCount)

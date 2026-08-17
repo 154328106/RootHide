@@ -558,16 +558,9 @@ void *boomerang_server(struct boomerang_info *info)
 - (NSError *)cleanUpPostExploitation
 {
     if (@available(iOS 17.0, *)) {
-        uint64_t proc = proc_self();
-        uint64_t ucred = proc_ucred(proc);
-
-        // Restore the temporary root credentials before returning to userspace.
-        kwrite32(ucred + koffsetof(ucred, svuid), 501);
-        kwrite32(ucred + koffsetof(ucred, ruid), 501);
-        kwrite32(ucred + koffsetof(ucred, uid), 501);
-        kwrite32(ucred + koffsetof(ucred, rgid), 501);
-        kwrite32(ucred + koffsetof(ucred, svgid), 501);
-        kwrite32(ucred + koffsetof(ucred, groups), 501);
+        // Keep the temporary credentials until finalize() starts the
+        // userspace reboot. Restoring uid 501 here made runAsRoot fail later,
+        // leaving the UI faded out without ever restarting userspace.
     }
     return nil;
 }
@@ -766,6 +759,7 @@ setenv("DYLD_INSERT_LIBRARIES", JBROOT_PATH("/basebin/systemhook.dylib"), 1);
 - (void)finalize
 {
     [[DOUIManager sharedInstance] sendLog:DOLocalizedString(@"Rebooting Userspace") debug:NO];
+    [self ensureDevModeEnabled];
     [[DOEnvironmentManager sharedManager] rebootUserspace];
 }
 
