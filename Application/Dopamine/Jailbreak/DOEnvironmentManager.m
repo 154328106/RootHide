@@ -485,35 +485,29 @@ extern char **environ;
 
 - (void)rebootUserspace
 {
+    // Keep the reboot carrier suspended until the app has completely left its
+    // temporary root / sandbox state.  Resuming it from inside either block is
+    // racy on iOS 17: launchd may start tearing down userspace while this
+    // process still owns the temporary credentials, which produces a short
+    // black flash and then returns to the app instead of completing the UBR.
+    __block int pid = -1;
+    __block int r = -1;
     [self runAsRoot:^{
-        __block int pid = 0;
-        __block int r = 0;
         [self runUnsandboxed:^{
             r = exec_cmd_suspended(&pid, JBROOT_PATH("/basebin/jbctl"), "reboot_userspace", NULL);
             NSLog(@"Userspace reboot spawn status=%d pid=%d", r, pid);
-            if (r == 0) {
-                // the original plan was to have the process continue outside of this block
-                // unfortunately sandbox blocks kill aswell, so it's a bit racy but works
-
-                // we assume we leave this unsandbox block before the userspace reboot starts
-                // to avoid leaking the label, this seems to work in practice
-                // and even if it doesn't work, leaking the label is no big deal
-                int resumeResult = kill(pid, SIGCONT);
-                NSLog(@"Userspace reboot resume status=%d errno=%d", resumeResult, resumeResult == 0 ? 0 : errno);
-            }
         }];
-        if (r == 0) {
-            if (@available(iOS 17.0, *)) {
-                // The suspended jbctl process is the userspace-reboot carrier.
-                // Do not synchronously wait for it on the SPTM path: returning
-                // control here avoids racing the app's teardown against launchd.
-                NSLog(@"Userspace reboot submitted asynchronously on iOS 17");
-            }
-            else {
-                cmd_wait_for_exit(pid);
-            }
-        }
     }];
+
+    if (r != 0 || pid <= 0) {
+        NSLog(@"Userspace reboot carrier was not created: status=%d pid=%d", r, pid);
+        return;
+    }
+
+    // This must stay asynchronous.  The child calls reboot3(), so waiting for
+    // it would race the app teardown against launchd on SPTM devices.
+    int resumeResult = kill(pid, SIGCONT);
+    NSLog(@"Userspace reboot resume status=%d errno=%d", resumeResult, resumeResult == 0 ? 0 : errno);
 }
 
 - (void)refreshJailbreakApps
