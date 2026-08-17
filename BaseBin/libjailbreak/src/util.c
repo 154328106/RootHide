@@ -18,6 +18,10 @@
 #include <mach-o/dyld_images.h>
 #include <mach-o/getsect.h>
 #include <dyld_cache_format.h>
+#include <sys/param.h>
+#include <sys/mount.h>
+#include <stdatomic.h>
+#include <errno.h>
 extern char **environ;
 
 #include "roothider.h"
@@ -132,7 +136,7 @@ uint64_t ttep_self(void)
 	static uint64_t gSelfTTEP = 0;
 	static dispatch_once_t onceToken;
 	dispatch_once(&onceToken, ^{
-		gSelfTTEP = kread_ptr(pmap_self() + koffsetof(pmap, ttep));
+		gSelfTTEP = kread64(pmap_self() + koffsetof(pmap, ttep));
 	});
 	return gSelfTTEP;
 }
@@ -163,8 +167,146 @@ uint64_t task_get_ipc_port_kobject(uint64_t task, mach_port_t port)
 	return kread_ptr(task_get_ipc_port_object(task, port) + koffsetof(ipc_port, kobject));
 }
 
+// SPTM tracks page-table ownership and reference counts separately from the
+// legacy pt_desc metadata.  The legacy RootHide path only works on PPL devices.
+static uint32_t sptm_frame_get_refcnt_off(uint64_t frame)
+{
+	uint8_t typeIdx = kread8(frame + koffsetof(sptm_frame, type));
+	if (ksymbol(libsptm_frame_type_params)) {
+		uint64_t descriptor = kread64(ksymbol(libsptm_frame_type_params)) + (ksizeof(sptm_frame_type_descriptor) * typeIdx);
+		uint8_t type = kread8(descriptor + koffsetof(sptm_frame_type_descriptor, type));
+		if (type == 1) return koffsetof(sptm_frame, nested_refcnt);
+		if (type == 2) return koffsetof(sptm_frame, mapping_refcnt);
+		return 0;
+	}
+	if (typeIdx == 8 || typeIdx == 17 || typeIdx == 18 || typeIdx == 31) return koffsetof(sptm_frame, nested_refcnt);
+	if (typeIdx == 9 || typeIdx == 19 || typeIdx == 20 || typeIdx == 32) return koffsetof(sptm_frame, mapping_refcnt);
+	return 0;
+}
+
+static uint16_t pagetable_get_refcnt(uint64_t pt_pa)
+{
+	if (ksymbol(libsptm_frame_table)) {
+		uint64_t frame = pa_to_sptm_frame(pt_pa);
+		uint32_t off = sptm_frame_get_refcnt_off(frame);
+		return off ? kread16(frame + off) : 0;
+	}
+	uint64_t pvh = pai_to_pvh(pa_index(pt_pa));
+	uint64_t ptdp = pvh_ptd(pvh);
+	uint64_t pinfo = kread64(ptdp + koffsetof(pt_desc, ptd_info));
+	return kread16(pinfo);
+}
+
+static void pagetable_set_refcnt(uint64_t pt_pa, uint16_t refcnt)
+{
+	if (ksymbol(libsptm_frame_table)) {
+		uint64_t frame = pa_to_sptm_frame(pt_pa);
+		uint32_t off = sptm_frame_get_refcnt_off(frame);
+		if (off) physwrite16(kvtophys(frame + off), refcnt);
+		return;
+	}
+	uint64_t pvh = pai_to_pvh(pa_index(pt_pa));
+	uint64_t ptdp = pvh_ptd(pvh);
+	uint64_t pinfo = kread64(ptdp + koffsetof(pt_desc, ptd_info));
+	physwrite16(kvtophys(pinfo), refcnt);
+}
+
+static void pagetable_modify_refcount(uint64_t pt_pa, int32_t delta)
+{
+	if (delta == 0) return;
+	uint64_t refcntPtr = 0;
+	if (ksymbol(libsptm_frame_table)) {
+		uint64_t frame = pa_to_sptm_frame(pt_pa);
+		uint32_t off = sptm_frame_get_refcnt_off(frame);
+		if (!off) return;
+		refcntPtr = kvtophys(frame + off);
+	}
+	else {
+		uint64_t pvh = pai_to_pvh(pa_index(pt_pa));
+		uint64_t ptdp = pvh_ptd(pvh);
+		uint64_t pinfo = kread64(ptdp + koffsetof(pt_desc, ptd_info));
+		refcntPtr = kvtophys(pinfo);
+	}
+	if (gPrimitives.physaccess_mapped) {
+		gPrimitives.physaccess_mapped(refcntPtr, sizeof(uint16_t), ^(void *ptr) {
+			_Atomic(uint16_t) *value = ptr;
+			if (delta > 0) atomic_fetch_add(value, delta);
+			else atomic_fetch_sub(value, -delta);
+		});
+	}
+	else {
+		physwrite16(refcntPtr, physread16(refcntPtr) + delta);
+	}
+}
+
+static void pagetable_set_pmap(uint64_t pt_pa, uint64_t pmap)
+{
+	uint64_t pvh = pai_to_pvh(pa_index(pt_pa));
+	uint64_t ptdp = pvh_ptd(pvh);
+	physwrite64(kvtophys(ptdp) + koffsetof(pt_desc, pmap), pmap);
+}
+
+static void pagetable_set_vas(uint64_t pt_pa, uint64_t va_start)
+{
+	uint64_t pvh = pai_to_pvh(pa_index(pt_pa));
+	uint64_t ptdp = pvh_ptd(pvh);
+	uint64_t ptdp_pa = kvtophys(ptdp);
+	for (uint64_t po = 0; po < vm_page_size; po += vm_real_kernel_page_size) {
+		physwrite64(ptdp_pa + koffsetof(pt_desc, va) + (po / vm_page_size), va_start + po);
+	}
+}
+
+static void pagetable_set_level(uint64_t pt_pa, uint8_t level)
+{
+	if (!ksymbol(libsptm_frame_table)) return;
+	uint64_t frame = pa_to_sptm_frame(pt_pa);
+	physwrite16(kvtophys(frame + koffsetof(sptm_frame, level)), level);
+}
+
+#define L2_ROUND_DOWN(x) (((vm_address_t)(x)) & (~(L2_BLOCK_SIZE - 1)))
+#define L2_ROUND_UP(x) ((((vm_address_t)(x)) + L2_BLOCK_SIZE - 1) & (~(L2_BLOCK_SIZE - 1)))
+
+static void *allocate_page_table_range(void)
+{
+	task_vm_info_data_t data = {};
+	mach_msg_type_number_t count = TASK_VM_INFO_COUNT;
+	task_info(mach_task_self(), TASK_VM_INFO, (task_info_t)&data, &count);
+	for (vm_address_t cur = L2_ROUND_UP(data.min_address); cur < L2_ROUND_DOWN(data.max_address); cur += L2_BLOCK_SIZE) {
+		vm_address_t allocation = cur;
+		if (vm_allocate(mach_task_self(), &allocation, L2_BLOCK_SIZE, VM_FLAGS_FIXED) == KERN_SUCCESS) return (void *)allocation;
+	}
+	return NULL;
+}
+
+static uint64_t alloc_page_table_unassigned_sptm(void)
+{
+	uint64_t pmap = pmap_self();
+	uint64_t ttep = kread64(pmap + koffsetof(pmap, ttep));
+	void *range = NULL;
+	uint64_t parentPte = 0;
+	uint64_t pageTable = 0;
+	while (true) {
+		range = allocate_page_table_range();
+		if (!range) return 0;
+		mlock(range, 0x4000);
+		uint64_t level = PMAP_TT_L2_LEVEL;
+		pageTable = vtophys_lvl(ttep, (uint64_t)range, &level, &parentPte);
+		if (pagetable_get_refcnt(pageTable) == 1) break;
+		munlock(range, 0x4000);
+		vm_deallocate(mach_task_self(), (vm_address_t)range, L2_BLOCK_SIZE);
+	}
+	pagetable_set_refcnt(pageTable, 0x1337);
+	munlock(range, 0x4000);
+	vm_deallocate(mach_task_self(), (vm_address_t)range, L2_BLOCK_SIZE);
+	physwrite64(parentPte, 0);
+	pagetable_set_refcnt(pageTable, 0);
+	pagetable_modify_refcount(parentPte, -1);
+	return pageTable;
+}
+
 uint64_t alloc_page_table_unassigned(void)
 {
+	if (ksymbol(libsptm_frame_table)) return alloc_page_table_unassigned_sptm();
 	uint64_t pmap = pmap_self();
 	uint64_t ttep = kread64(pmap + koffsetof(pmap, ttep));
 
@@ -255,7 +397,7 @@ uint64_t alloc_page_table_unassigned(void)
 	return allocatedPT;
 }
 
-uint64_t pmap_alloc_page_table(uint64_t pmap, uint64_t va)
+uint64_t pmap_alloc_page_table(uint64_t pmap, uint8_t level, uint64_t va)
 {
 	if (!pmap) {
 		pmap = pmap_self();
@@ -263,6 +405,12 @@ uint64_t pmap_alloc_page_table(uint64_t pmap, uint64_t va)
 
 	uint64_t tt_p = alloc_page_table_unassigned();
 	if (!tt_p) return 0;
+	if (ksymbol(libsptm_frame_table)) {
+		pagetable_set_pmap(tt_p, pmap);
+		pagetable_set_vas(tt_p, va);
+		pagetable_set_level(tt_p, level);
+		return tt_p;
+	}
 
 	uint64_t pvh = pai_to_pvh(pa_index(tt_p));
 	uint64_t ptdp = pvh_ptd(pvh);
@@ -285,7 +433,7 @@ uint64_t pmap_alloc_page_table(uint64_t pmap, uint64_t va)
 
 int pmap_expand_range(uint64_t pmap, uint64_t vaStart, uint64_t size)
 {
-	uint64_t ttep = kread_ptr(pmap + koffsetof(pmap, ttep));
+	uint64_t ttep = kread64(pmap + koffsetof(pmap, ttep));
 
 	if (is_kcall_available()) {
 		uint64_t unmappedStart = 0, unmappedSize = 0;
@@ -356,9 +504,14 @@ int pmap_expand_range(uint64_t pmap, uint64_t vaStart, uint64_t size)
 						}
 					}
 					leafLevel++;
-					uint64_t newTable = pmap_alloc_page_table(pmap, pt_va);
+					uint64_t newTable = pmap_alloc_page_table(pmap, leafLevel, pt_va);
 					if (newTable) {
+						uint64_t oldEntry = physread64(pte);
 						physwrite64(pte, newTable | ARM_TTE_VALID | ARM_TTE_TYPE_TABLE);
+						if (ksymbol(libsptm_frame_table) && !oldEntry) {
+							uint64_t parentPt = leafLevel == PMAP_TT_L2_LEVEL ? ttep : (pte & ~PAGE_MASK);
+							pagetable_modify_refcount(parentPt, 1);
+						}
 					}
 					else {
 						return -2;
@@ -1034,5 +1187,4 @@ char *boot_manifest_hash(void)
 
 	return gBuf;
 }
-
 

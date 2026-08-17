@@ -30,7 +30,7 @@ uint64_t vm_page_for_pnum(uint64_t pnum);
 uint64_t vm_page_for_pai(uint64_t pai);
 
 uint64_t alloc_page_table_unassigned(void);
-uint64_t pmap_alloc_page_table(uint64_t pmap, uint64_t va);
+uint64_t pmap_alloc_page_table(uint64_t pmap, uint8_t level, uint64_t va_start);
 int pmap_expand_range(uint64_t pmap, uint64_t vaStart, uint64_t size);
 int pmap_map_in(uint64_t pmap, uint64_t uaStart, uint64_t paStart, uint64_t size);
 
@@ -100,5 +100,4 @@ NSString *NSPrebootUUIDPath(NSString *relativePath);
 void JBFixMobilePermissions(void);
 
 #endif
-
 
