@@ -108,6 +108,17 @@
 "Initializing Protection" = "初始化保护";
 "Loading BaseBin TrustCache" = "将基础套件加载至信任缓存（TrustCache）";
 "Applying Bind Mount" = "应用绑定挂载";
+"Mount_Title" = "挂载";
+"Mount_Add_Title" = "新增挂载";
+"Mount_Manage_Title" = "管理挂载";
+"Mount_Path_Prompt" = "输入要镜像到越狱环境中的目录绝对路径。";
+"Mount_Path_Invalid" = "路径必须是已存在的目录，且不能是文件系统根目录。";
+"Mount_No_Paths" = "当前没有已配置的挂载路径。";
+"Mount_Unmount_Keep_Copy" = "卸载并保留副本";
+"Mount_Unmount_Delete_Copy" = "卸载并删除副本";
+"Mount_Operation_Succeeded" = "挂载操作已成功完成。";
+"Mount_Operation_Failed" = "挂载操作失败，错误码：%d。";
+"Button_Mount" = "挂载";
 "Removing Jailbreak" = "移除越狱";
 "Elevating Privileges" = "提升权限";
 "Cleaning Up Exploits" = "清理环境";

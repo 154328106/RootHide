@@ -113,6 +113,17 @@
 "Initializing Protection" = "Initializing Protection";
 "Loading BaseBin TrustCache" = "Loading BaseBin TrustCache";
 "Applying Bind Mount" = "Applying Bind Mount";
+"Mount_Title" = "Mount";
+"Mount_Add_Title" = "Add Mount";
+"Mount_Manage_Title" = "Manage Mounts";
+"Mount_Path_Prompt" = "Enter the absolute directory path to mirror into the jailbreak environment.";
+"Mount_Path_Invalid" = "The path must be an existing directory and cannot be the filesystem root.";
+"Mount_No_Paths" = "There are no configured mount paths.";
+"Mount_Unmount_Keep_Copy" = "Unmount and Keep Mirror";
+"Mount_Unmount_Delete_Copy" = "Unmount and Delete Mirror";
+"Mount_Operation_Succeeded" = "Mount operation completed successfully.";
+"Mount_Operation_Failed" = "Mount operation failed with error code: %d.";
+"Button_Mount" = "Mount";
 "Removing Jailbreak" = "Removing Jailbreak";
 "Elevating Privileges" = "Elevating Privileges";
 "Cleaning Up Exploits" = "Cleaning Up Exploits";
