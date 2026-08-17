@@ -742,10 +742,32 @@ extern char **environ;
             return kernelInApp;
         }
         
-        [[DOUIManager sharedInstance] sendLog:@"Downloading Kernel" debug:NO];
-        NSString *kernelcachePath = [NSHomeDirectory() stringByAppendingPathComponent:@"Documents/kernelcache"];
-        if (![[NSFileManager defaultManager] fileExistsAtPath:kernelcachePath]) {
-            if (grab_kernelcache(kernelcachePath) == false) return nil;
+        NSString *documentsPath = [NSHomeDirectory() stringByAppendingPathComponent:@"Documents"];
+        NSString *kernelcachePath = [documentsPath stringByAppendingPathComponent:@"kernelcache"];
+        BOOL needsKernelcache = ![[NSFileManager defaultManager] fileExistsAtPath:kernelcachePath];
+
+        // iOS 17 SPTM devices must pass the paired SPTM and TXM images to XPF.
+        // A previous RootHide port only fetched kernelcache, which made devices
+        // with an existing partial download take the legacy PPL patchfinding path.
+        BOOL needsFirmware = NO;
+        if ([self isSPTM]) {
+            NSString *sptmIMG4 = [documentsPath stringByAppendingPathComponent:@"sptm.img4"];
+            NSString *sptmIM4P = [documentsPath stringByAppendingPathComponent:@"sptm.im4p"];
+            NSString *txmIMG4 = [documentsPath stringByAppendingPathComponent:@"txm.img4"];
+            NSString *txmIM4P = [documentsPath stringByAppendingPathComponent:@"txm.im4p"];
+            BOOL hasSPTM = [[NSFileManager defaultManager] fileExistsAtPath:sptmIMG4] || [[NSFileManager defaultManager] fileExistsAtPath:sptmIM4P];
+            BOOL hasTXM = [[NSFileManager defaultManager] fileExistsAtPath:txmIMG4] || [[NSFileManager defaultManager] fileExistsAtPath:txmIM4P];
+            needsFirmware = !hasSPTM || !hasTXM;
+        }
+
+        if (needsKernelcache || needsFirmware) {
+            [[DOUIManager sharedInstance] sendLog:@"Downloading Kernel Images" debug:NO];
+            if ([self isSPTM]) {
+                if (grab_images(documentsPath) == false) return nil;
+            }
+            else if (grab_kernelcache(kernelcachePath) == false) {
+                return nil;
+            }
         }
         return kernelcachePath;
     }
@@ -989,4 +1011,3 @@ extern char **environ;
 }
 
 @end
-
