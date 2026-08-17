@@ -16,6 +16,7 @@
 #import <dlfcn.h>
 #import <sys/stat.h>
 #import <mach-o/loader.h>
+#import <mach-o/fat.h>
 #import "NSString+Version.h"
 
 #define LIBKRW_DOPAMINE_BUNDLED_VERSION @"2.0.3"
@@ -53,7 +54,9 @@ static BOOL DOBootstrapperIsMachOFile(NSString *path)
     uint32_t magic = 0;
     size_t count = fread(&magic, sizeof(magic), 1, file);
     fclose(file);
-    return count == 1 && (magic == MH_MAGIC_64 || magic == MH_CIGAM_64);
+    return count == 1 && (magic == MH_MAGIC_64 || magic == MH_CIGAM_64 ||
+                          magic == FAT_MAGIC || magic == FAT_CIGAM ||
+                          magic == FAT_MAGIC_64 || magic == FAT_CIGAM_64);
 }
 
 @implementation DOBootstrapper
