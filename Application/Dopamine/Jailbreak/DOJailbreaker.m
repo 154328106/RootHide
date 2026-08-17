@@ -749,7 +749,20 @@ setenv("DYLD_INSERT_LIBRARIES", JBROOT_PATH("/basebin/systemhook.dylib"), 1);
     }
     
     [[DOUIManager sharedInstance] sendLog:DOLocalizedString(@"RootHide: finalizing bootstrap") debug:NO];
+    bool restoreSystemHookForFinalization = false;
+    if (@available(iOS 17.0, *)) {
+        // The first bootstrap script launches several rootless helper tools.
+        // Do not inject SystemHook into that one-time installation process;
+        // with the stock-dyld policy it can wait forever before the script
+        // itself starts. Re-enable the normal environment immediately after.
+        restoreSystemHookForFinalization = true;
+        unsetenv("DYLD_INSERT_LIBRARIES");
+        [[DOUIManager sharedInstance] sendLog:DOLocalizedString(@"iOS 17+: finalizing bootstrap without SystemHook injection") debug:NO];
+    }
     *errOut = [self finalizeBootstrapIfNeeded];
+    if (restoreSystemHookForFinalization) {
+        setenv("DYLD_INSERT_LIBRARIES", JBROOT_PATH("/basebin/systemhook.dylib"), 1);
+    }
     if (*errOut) {
         [self cleanUpPostExploitation];
         return;
