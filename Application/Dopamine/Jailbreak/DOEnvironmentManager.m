@@ -22,6 +22,9 @@
 #import <libjailbreak/display.h>
 #import <libjailbreak/machine_info.h>
 #import <libjailbreak/carboncopy.h>
+#import <libjailbreak/primitives.h>
+#import <libjailbreak/physrw.h>
+#import <libjailbreak/kernel.h>
 
 #import <IOKit/IOKitLib.h>
 #import "DOUIManager.h"
@@ -33,6 +36,25 @@
 int reboot3(uint64_t flags, ...);
 CFPropertyListRef MGCopyAnswer(CFStringRef);
 extern char **environ;
+
+static void DORestoreAppCredentialsForUserspaceReboot(void)
+{
+    if (@available(iOS 17.0, *)) {
+        uint64_t proc = proc_self();
+        uint64_t ucred = proc_ucred(proc);
+        if (proc == 0 || ucred == 0) return;
+
+        // The reboot carrier has already inherited the temporary access. Put
+        // the app back into its normal mobile identity before that carrier is
+        // allowed to call reboot3(). This is the iOS 17 handoff boundary.
+        kwrite32(ucred + koffsetof(ucred, svuid), 501);
+        kwrite32(ucred + koffsetof(ucred, ruid), 501);
+        kwrite32(ucred + koffsetof(ucred, uid), 501);
+        kwrite32(ucred + koffsetof(ucred, rgid), 501);
+        kwrite32(ucred + koffsetof(ucred, svgid), 501);
+        kwrite32(ucred + koffsetof(ucred, groups), 501);
+    }
+}
 
 @implementation DOEnvironmentManager
 
@@ -485,29 +507,56 @@ extern char **environ;
 
 - (void)rebootUserspace
 {
-    // Keep the reboot carrier suspended until the app has completely left its
-    // temporary root / sandbox state.  Resuming it from inside either block is
-    // racy on iOS 17: launchd may start tearing down userspace while this
-    // process still owns the temporary credentials, which produces a short
-    // black flash and then returns to the app instead of completing the UBR.
+    // Use the 3.0.7 wait-pipe handoff instead of POSIX_SPAWN_START_SUSPENDED.
+    // The latter can resume too early on iOS 17 and leave the foreground scene
+    // black without actually completing the userspace reboot.
+    const char *jbctlPath = JBROOT_PATH("/basebin/jbctl");
+    if (!jbctlPath) {
+        NSLog(@"Userspace reboot carrier path is unavailable");
+        return;
+    }
+
+    int waitPipe[2] = {-1, -1};
+    if (pipe(waitPipe) != 0) {
+        NSLog(@"Userspace reboot pipe creation failed: %d", errno);
+        return;
+    }
+
+    char waitFD[16] = {0};
+    snprintf(waitFD, sizeof(waitFD), "%d", 3);
+    char *args[] = {(char *)jbctlPath, "reboot_userspace", "--waitfor", waitFD, NULL};
+    posix_spawn_file_actions_t actions = NULL;
+    posix_spawn_file_actions_init(&actions);
+    posix_spawn_file_actions_adddup2(&actions, waitPipe[0], 3);
+
     __block int pid = -1;
     __block int r = -1;
     [self runAsRoot:^{
         [self runUnsandboxed:^{
-            r = exec_cmd_suspended(&pid, JBROOT_PATH("/basebin/jbctl"), "reboot_userspace", NULL);
+            r = posix_spawn(&pid, jbctlPath, &actions, NULL, args, environ);
             NSLog(@"Userspace reboot spawn status=%d pid=%d", r, pid);
         }];
     }];
 
+    posix_spawn_file_actions_destroy(&actions);
+
     if (r != 0 || pid <= 0) {
         NSLog(@"Userspace reboot carrier was not created: status=%d pid=%d", r, pid);
+        close(waitPipe[0]);
+        close(waitPipe[1]);
         return;
     }
 
-    // This must stay asynchronous.  The child calls reboot3(), so waiting for
-    // it would race the app teardown against launchd on SPTM devices.
-    int resumeResult = kill(pid, SIGCONT);
-    NSLog(@"Userspace reboot resume status=%d errno=%d", resumeResult, resumeResult == 0 ? 0 : errno);
+    // The carrier is blocked in jbctl until this write. Restore the app's
+    // temporary kernel credentials first, then release the already-spawned
+    // carrier asynchronously. This mirrors the iOS 17-safe ordering without
+    // requiring the now-unprivileged app to signal a root child.
+    DORestoreAppCredentialsForUserspaceReboot();
+    char release = 'w';
+    ssize_t writeResult = write(waitPipe[1], &release, sizeof(release));
+    NSLog(@"Userspace reboot handoff write=%zd errno=%d", writeResult, writeResult == 1 ? 0 : errno);
+    close(waitPipe[0]);
+    close(waitPipe[1]);
 }
 
 - (void)refreshJailbreakApps
