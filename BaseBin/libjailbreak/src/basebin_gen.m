@@ -114,12 +114,16 @@ int basebin_generate(bool comingFromJBUpdate)
 
 	NSString *dopamineVersion = [NSString stringWithContentsOfFile:JBROOT_PATH(@"/basebin/.version") encoding:NSUTF8StringEncoding error:nil];
 	if (!dopamineVersion) return 1;
+	printf("[basebin] start (update=%d)\n", comingFromJBUpdate);
 
 	if (!comingFromJBUpdate) {
 		// Copy /usr/lib to /var/jb/basebin/.fakelib
+		printf("[basebin] resetting FakeLib\n");
 		[[NSFileManager defaultManager] removeItemAtPath:fakelibPath error:nil];
 		[[NSFileManager defaultManager] createDirectoryAtPath:fakelibPath withIntermediateDirectories:YES attributes:nil error:nil];
-		carbonCopy(@"/usr/lib", fakelibPath);
+		printf("[basebin] copying /usr/lib\n");
+		if (carbonCopy(@"/usr/lib", fakelibPath) != 0) return 10;
+		printf("[basebin] copied /usr/lib\n");
 
 		// Delete the dyld inside .fakelib
 		[[NSFileManager defaultManager] removeItemAtPath:fakelibDyldPath error:nil];
@@ -131,14 +135,19 @@ int basebin_generate(bool comingFromJBUpdate)
 		[[NSFileManager defaultManager] createSymbolicLinkAtPath:fakelibSystemHookPath withDestinationPath:systemhookPath error:nil];
 
 		// Backup original dyld
-		carbonCopy(@"/usr/lib/dyld", dyldOrigPath);
+		printf("[basebin] copying stock dyld\n");
+		if (carbonCopy(@"/usr/lib/dyld", dyldOrigPath) != 0) return 11;
 	}
 
-	carbonCopy(dyldOrigPath, dyldInflightPath);
+	printf("[basebin] preparing patched dyld\n");
+	if (carbonCopy(dyldOrigPath, dyldInflightPath) != 0) return 12;
 
 	NSString *dyldUUIDPrefix = [@"DOPA" stringByAppendingString:dopamineVersion];
+	printf("[basebin] patching dyld\n");
 	if (apply_dyld_patch(dyldInflightPath, dyldUUIDPrefix.UTF8String) != 0) return 2;
+	printf("[basebin] merging dyldhook\n");
 	if (merge_dyldhook(dyldInflightPath, dyldInflightPath) != 0) return 3;
+	printf("[basebin] signing dyld\n");
 	if (resign_file(dyldInflightPath, @"com.apple.dyld", YES) != 0) return 4;
 
 	if (comingFromJBUpdate) {
@@ -154,6 +163,6 @@ int basebin_generate(bool comingFromJBUpdate)
 	}
 
 	[[NSFileManager defaultManager] moveItemAtPath:dyldInflightPath toPath:dyldPatchedPath error:nil];
+	printf("[basebin] complete\n");
 	return 0;
 }
-
