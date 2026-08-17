@@ -816,8 +816,14 @@ setenv("DYLD_INSERT_LIBRARIES", JBROOT_PATH("/basebin/systemhook.dylib"), 1);
     if (@available(iOS 17.0, *)) {
         [[DOUIManager sharedInstance] sendLog:DOLocalizedString(@"iOS 17+: submitting userspace reboot") debug:NO];
     }
-    [self ensureDevModeEnabled];
-    [[DOEnvironmentManager sharedManager] rebootUserspace];
+
+    // finalize is called from the fade-to-black completion on the main
+    // thread.  iOS 17 gives that foreground scene only ten seconds to answer
+    // a transition, so root cleanup and the reboot handoff must not run there.
+    dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+        [self ensureDevModeEnabled];
+        [[DOEnvironmentManager sharedManager] rebootUserspace];
+    });
 }
 
 - (IOSurfaceRef)allocatePurpleGfxMemWithSize:(size_t)size
