@@ -524,7 +524,13 @@ static void DORestoreAppCredentialsForUserspaceReboot(void)
 
     char waitFD[16] = {0};
     snprintf(waitFD, sizeof(waitFD), "%d", 3);
-    char *args[] = {(char *)jbctlPath, "reboot_userspace", "--waitfor", waitFD, NULL};
+    // A heap-backed argument vector is required here because the spawn call
+    // runs inside the root/unsandbox block.
+    char **args = calloc(5, sizeof(char *));
+    args[0] = (char *)jbctlPath;
+    args[1] = "reboot_userspace";
+    args[2] = "--waitfor";
+    args[3] = waitFD;
     posix_spawn_file_actions_t actions = NULL;
     posix_spawn_file_actions_init(&actions);
     posix_spawn_file_actions_adddup2(&actions, waitPipe[0], 3);
@@ -544,6 +550,7 @@ static void DORestoreAppCredentialsForUserspaceReboot(void)
         NSLog(@"Userspace reboot carrier was not created: status=%d pid=%d", r, pid);
         close(waitPipe[0]);
         close(waitPipe[1]);
+        free(args);
         return;
     }
 
@@ -557,6 +564,7 @@ static void DORestoreAppCredentialsForUserspaceReboot(void)
     NSLog(@"Userspace reboot handoff write=%zd errno=%d", writeResult, writeResult == 1 ? 0 : errno);
     close(waitPipe[0]);
     close(waitPipe[1]);
+    free(args);
 }
 
 - (void)refreshJailbreakApps
