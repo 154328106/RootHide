@@ -107,6 +107,10 @@ static bool roothide_is_ios17_or_newer(void)
 void roothide_launchd_preinit()
 {
 	JBLogDebug("roothide_launchd_preinit");
+	if (roothide_is_ios17_or_newer()) {
+		jbinfo(dyld_patch_enabled) = false;
+		JBLogDebug("iOS 17+: using stock dyld");
+	}
 
 #ifdef ENABLE_LOGS
 	enableJBDLog(JBLogDebugFunction, JBLogErrorFunction);
@@ -120,6 +124,9 @@ void roothide_launchd_postinit(bool firstLoad)
 	JBLogDebug("roothide_launchd_postinit: firstLoad=%d", firstLoad);
 
 	launchdhookFirstLoad = firstLoad;
+	if (roothide_is_ios17_or_newer()) {
+		jbinfo(dyld_patch_enabled) = false;
+	}
 
 	exec_set_patch(true);
 
@@ -196,13 +203,17 @@ void roothide_launchd_postinit(bool firstLoad)
 	}
 #endif
 
-	if(!firstLoad)
+	if(!firstLoad && !roothide_is_ios17_or_newer())
 	{
 		int ret = ensure_dyld_trustcache(JBROOT_PATH("/basebin/.fakelib/dyld"));
 		if (ret != 0) {
 			launchd_panic("ensure dyld trustcache failed: %d", ret);
 			return;
 		}
+	}
+	else if(!firstLoad)
+	{
+		JBLogDebug("iOS 17+: skipping FakeLib dyld trustcache");
 	}
 
 	loadAppStoredIdentifiers();

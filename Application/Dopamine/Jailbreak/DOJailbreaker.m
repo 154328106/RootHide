@@ -600,6 +600,12 @@ void *boomerang_server(struct boomerang_info *info)
 /****************** roothide specific ****************/
     //initialize it before injecting launchdhook
     gSystemInfo.jailbreakInfo.dyld_patch_enabled = [[DOPreferenceManager sharedManager] boolPreferenceValueForKey:@"dyldPatchEnabled" fallback:NO];
+    if (@available(iOS 17.0, *)) {
+        // iOS 17's SPTM path deliberately stays on the stock dyld.  Creating a
+        // complete FakeLib copy here is both unnecessary and can stall before
+        // launchd gets a chance to start SystemHook.
+        gSystemInfo.jailbreakInfo.dyld_patch_enabled = false;
+    }
 /****************** roothide specific ****************/
     
     
@@ -696,18 +702,24 @@ void *boomerang_server(struct boomerang_info *info)
 /*************************** roothide specific *******************/
 [[DOUIManager sharedInstance] sendLog:DOLocalizedString(@"RootHide Stage") debug:NO];
 
-int ret = basebin_generate(false);
-if (ret != 0) {
-    *errOut = [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedInitFakeLib userInfo:@{NSLocalizedDescriptionKey : [NSString stringWithFormat:@"Creating fakelib failed with error: %d", ret]}];
-    [self cleanUpPostExploitation];
-    return;
+int ret = 0;
+if (@available(iOS 17.0, *)) {
+    [[DOUIManager sharedInstance] sendLog:DOLocalizedString(@"iOS 17+: using stock dyld (FakeLib disabled)") debug:NO];
 }
+else {
+    ret = basebin_generate(false);
+    if (ret != 0) {
+        *errOut = [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedInitFakeLib userInfo:@{NSLocalizedDescriptionKey : [NSString stringWithFormat:@"Creating fakelib failed with error: %d", ret]}];
+        [self cleanUpPostExploitation];
+        return;
+    }
 
-ret = ensure_dyld_trustcache(JBROOT_PATH("/basebin/.fakelib/dyld"));
-if (ret != 0) {
-    *errOut = [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedInitFakeLib userInfo:@{NSLocalizedDescriptionKey : [NSString stringWithFormat:@"Failed to upload dyld trustcache: %d", ret]}];
-    [self cleanUpPostExploitation];
-    return;
+    ret = ensure_dyld_trustcache(JBROOT_PATH("/basebin/.fakelib/dyld"));
+    if (ret != 0) {
+        *errOut = [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedInitFakeLib userInfo:@{NSLocalizedDescriptionKey : [NSString stringWithFormat:@"Failed to upload dyld trustcache: %d", ret]}];
+        [self cleanUpPostExploitation];
+        return;
+    }
 }
 
 exec_set_patch(true); /* launchdhook injected and dyld patched, 
