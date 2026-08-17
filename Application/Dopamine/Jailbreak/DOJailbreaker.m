@@ -813,6 +813,9 @@ setenv("DYLD_INSERT_LIBRARIES", JBROOT_PATH("/basebin/systemhook.dylib"), 1);
 - (void)finalize
 {
     [[DOUIManager sharedInstance] sendLog:DOLocalizedString(@"Rebooting Userspace") debug:NO];
+    if (@available(iOS 17.0, *)) {
+        [[DOUIManager sharedInstance] sendLog:DOLocalizedString(@"iOS 17+: submitting userspace reboot") debug:NO];
+    }
     [self ensureDevModeEnabled];
     [[DOEnvironmentManager sharedManager] rebootUserspace];
 }

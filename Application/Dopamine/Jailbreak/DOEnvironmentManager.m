@@ -490,6 +490,7 @@ extern char **environ;
         __block int r = 0;
         [self runUnsandboxed:^{
             r = exec_cmd_suspended(&pid, JBROOT_PATH("/basebin/jbctl"), "reboot_userspace", NULL);
+            NSLog(@"Userspace reboot spawn status=%d pid=%d", r, pid);
             if (r == 0) {
                 // the original plan was to have the process continue outside of this block
                 // unfortunately sandbox blocks kill aswell, so it's a bit racy but works
@@ -497,11 +498,20 @@ extern char **environ;
                 // we assume we leave this unsandbox block before the userspace reboot starts
                 // to avoid leaking the label, this seems to work in practice
                 // and even if it doesn't work, leaking the label is no big deal
-                kill(pid, SIGCONT);
+                int resumeResult = kill(pid, SIGCONT);
+                NSLog(@"Userspace reboot resume status=%d errno=%d", resumeResult, resumeResult == 0 ? 0 : errno);
             }
         }];
         if (r == 0) {
-            cmd_wait_for_exit(pid);
+            if (@available(iOS 17.0, *)) {
+                // The suspended jbctl process is the userspace-reboot carrier.
+                // Do not synchronously wait for it on the SPTM path: returning
+                // control here avoids racing the app's teardown against launchd.
+                NSLog(@"Userspace reboot submitted asynchronously on iOS 17");
+            }
+            else {
+                cmd_wait_for_exit(pid);
+            }
         }
     }];
 }
