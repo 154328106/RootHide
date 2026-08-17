@@ -722,6 +722,7 @@ else {
     }
 }
 
+[[DOUIManager sharedInstance] sendLog:DOLocalizedString(@"RootHide: enabling SystemHook") debug:NO];
 exec_set_patch(true); /* launchdhook injected and dyld patched, 
 now we can enable dyld patching for new process */
 
@@ -732,11 +733,14 @@ setenv("DISABLE_TWEAKS", "1", 1);
 // using the stock path during jailbreaking
 setenv("DYLD_INSERT_LIBRARIES", JBROOT_PATH("/basebin/systemhook.dylib"), 1);
 
+[[DOUIManager sharedInstance] sendLog:DOLocalizedString(@"RootHide: refreshing icon services") debug:NO];
+
 /******************************** roothide specific *************************/
     
     // Unsandbox iconservicesagent so that app icons can work
     exec_cmd_trusted(JBROOT_PATH("/usr/bin/killall"), "-9", "iconservicesagent", NULL);
     
+    [[DOUIManager sharedInstance] sendLog:DOLocalizedString(@"RootHide: finalizing bootstrap") debug:NO];
     *errOut = [self finalizeBootstrapIfNeeded];
     if (*errOut) {
         [self cleanUpPostExploitation];
@@ -744,6 +748,7 @@ setenv("DYLD_INSERT_LIBRARIES", JBROOT_PATH("/basebin/systemhook.dylib"), 1);
     }
     [[DOEnvironmentManager sharedManager] restoreFakeMounts];
     
+    [[DOUIManager sharedInstance] sendLog:DOLocalizedString(@"RootHide: restoring environment") debug:NO];
     [[DOEnvironmentManager sharedManager] setIDownloadEnabled:idownloadEnabled needsUnsandbox:NO];
     
 /*
@@ -765,6 +770,7 @@ setenv("DYLD_INSERT_LIBRARIES", JBROOT_PATH("/basebin/systemhook.dylib"), 1);
     // Note: This causes the app to freeze in some instances due to launchd only having physrw_pte, we might want to only do it when neccessary
     // It's only neccessary when we don't immediately userspace reboot
     
+    [[DOUIManager sharedInstance] sendLog:DOLocalizedString(@"RootHide: stage complete") debug:NO];
     printf("Done!\n");
 }
 
