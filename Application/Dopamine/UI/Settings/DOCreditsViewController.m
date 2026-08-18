@@ -33,24 +33,6 @@
     return _specifiers;
 }
 
-- (void)tableView:(UITableView *)tableView willDisplayCell:(UITableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath
-{
-    [super tableView:tableView willDisplayCell:cell forRowAtIndexPath:indexPath];
-    // Draw an explicit light box (faint fill + faint hairline border) on
-    // every grouped section (Developers / UI and Design / Credits) instead of
-    // relying on the stock grouped background — which either renders too
-    // heavy or disappears entirely depending on iOS version.
-    UIView *box = [[UIView alloc] init];
-    box.userInteractionEnabled = NO;
-    box.backgroundColor = [UIColor colorWithWhite:1.0 alpha:0.06];
-    box.layer.cornerRadius = 12;
-    box.layer.cornerCurve = kCACornerCurveContinuous;
-    box.layer.borderWidth = 1;
-    box.layer.borderColor = [UIColor colorWithWhite:1.0 alpha:0.12].CGColor;
-    cell.backgroundView = box;
-    cell.backgroundColor = [UIColor clearColor];
-}
-
 - (void)openSourceCode
 {
     [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://github.com/roothide/Dopamine2-roothide"] options:@{} completionHandler:nil];
