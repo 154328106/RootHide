@@ -8,9 +8,7 @@
 #include <bsm/libbsm.h>
 #include <sys/param.h>
 #include <stdlib.h>
-#include <libproc.h>
-#include <sys/proc.h>
-#include <sys/proc_info.h>
+#include <dispatch/dispatch.h>
 
 #include "../libjailbreak.h"
 #include "jailbreakd.h"
@@ -321,50 +319,42 @@ xpc_object_t jailbreakdXpcRequest(xpc_object_t xdict)
 		return NULL;
 	}
 
-	// Fail fast when jailbreakd is stopped, dying, or gone. launchd calls this
-	// synchronously from its posix_spawn hook, so blocking on an unresponsive
-	// jailbreakd stalls launchd's eventq and the kernel watchdog eventually
-	// panics with "no checkins from watchdogd".
-	const char *jbdPidEnv = getenv("JAILBREAKD_PID");
-	if (jbdPidEnv) {
-		pid_t jbdPid = atoi(jbdPidEnv);
-		if (jbdPid > 1) {
-			struct proc_bsdinfo procInfo = {0};
-			int infoRet = proc_pidinfo(jbdPid, PROC_PIDTBSDINFO, 0, &procInfo, sizeof(procInfo));
-			bool jbdUnavailable = true;
-			if (infoRet == sizeof(procInfo)) {
-				// SRUN and SSLEEP are the normal healthy states for a daemon.
-				jbdUnavailable = (procInfo.pbi_status == SSTOP ||
-								  procInfo.pbi_status == SZOMB ||
-								  procInfo.pbi_status == SIDL);
+	// Bound this synchronous round-trip. launchd calls it from its posix_spawn
+	// hook, so an unresponsive jailbreakd (not yet checked in, suspended, or
+	// hung) would otherwise stall launchd forever and trip the kernel watchdog
+	// ("no checkins from watchdogd").
+	xpc_retain(xdict);
+	__block xpc_object_t xreply = NULL;
+	dispatch_group_t group = dispatch_group_create();
+
+	dispatch_group_async(group, dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+		xpc_object_t pipe = xpc_pipe_create_from_port(port, 0);
+		if (pipe) {
+			xpc_object_t localReply = NULL;
+			int err = xpc_pipe_routine(pipe, xdict, &localReply);
+			if (err != 0) {
+				char *desc = NULL;
+				JBLogError("xpc_pipe_routine error on sending message to jailbreakd: %d / %s\n%s", err, xpc_strerror(err), (desc=xpc_copy_description(xdict)));
+				if(desc) free(desc);
+				if(localReply) xpc_release(localReply);
+				localReply = NULL;
 			}
-			if (jbdUnavailable) {
-				JBLogError("jailbreakd (pid %d) is not runnable (infoRet=%d status=%d), failing fast to avoid launchd watchdog deadlock",
-					jbdPid, infoRet, infoRet == sizeof(procInfo) ? procInfo.pbi_status : -1);
-				mach_port_deallocate(mach_task_self(), port);
-				return NULL;
-			}
+			xreply = localReply;
+			xpc_release(pipe);
+		} else {
+			JBLogError("xpc_pipe_create_from_port failed");
 		}
-	}
-	
-	xpc_object_t xreply = NULL;
-	xpc_object_t pipe = xpc_pipe_create_from_port(port, 0);
-	if (pipe) {
-		int err = xpc_pipe_routine(pipe, xdict, &xreply);
-		if (err != 0) {
-			char *desc = NULL;
-			JBLogError("xpc_pipe_routine error on sending message to jailbreakd: %d / %s\n%s", err, xpc_strerror(err), (desc=xpc_copy_description(xdict)));
-			if(desc) free(desc);
-			if(xreply) xpc_release(xreply);
-			xreply = NULL;
-		};
-	} else {
-		JBLogError("xpc_pipe_create_from_port failed");
-	}
+		xpc_release(xdict);
+		mach_port_deallocate(mach_task_self(), port);
+	});
 
-	mach_port_deallocate(mach_task_self(), port);
+	long waitResult = dispatch_group_wait(group, dispatch_time(DISPATCH_TIME_NOW, 3 * NSEC_PER_SEC));
+	dispatch_release(group);
 
-	xpc_release(pipe);
+	if (waitResult != 0) {
+		JBLogError("jailbreakd request timed out, failing fast to avoid launchd watchdog deadlock");
+		xreply = NULL;
+	}
 	return xreply;
 }
 
@@ -510,4 +500,3 @@ int jbdExecTraceCancel(const char* execfile, bool* detached)
 	xpc_release(reply);
 	return result;
 }
-
