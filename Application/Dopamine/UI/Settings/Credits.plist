@@ -64,7 +64,7 @@
 			<key>headerCellClass</key>
 			<string>DOCreditsCell</string>
 			<key>sectionTitle</key>
-			<string>DEVELOPERS</string>
+			<string>开发者</string>
 			<key>names</key>
 			<array>
 				<dict>
@@ -111,7 +111,7 @@
 			<key>headerCellClass</key>
 			<string>DOCreditsCell</string>
 			<key>sectionTitle</key>
-			<string>UI AND DESIGN</string>
+			<string>UI设置</string>
 			<key>names</key>
 			<array>
 				<dict>
@@ -140,7 +140,7 @@
 			<key>headerCellClass</key>
 			<string>DOCreditsCell</string>
 			<key>sectionTitle</key>
-			<string>CREDITS</string>
+			<string>在此致谢</string>
 			<key>names</key>
 			<array>
 				<dict>
