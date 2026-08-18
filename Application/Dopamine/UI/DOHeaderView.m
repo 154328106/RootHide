@@ -23,7 +23,7 @@
         stackView.axis = UILayoutConstraintAxisVertical;
         stackView.spacing = 2;
         stackView.translatesAutoresizingMaskIntoConstraints = NO;
-        stackView.alignment = UIStackViewAlignmentLeading;
+        stackView.alignment = UIStackViewAlignmentCenter;
 
         [self addSubview:stackView];
 
@@ -47,6 +47,7 @@
             NSForegroundColorAttributeName: [UIColor colorWithRed:0.86 green:0.96 blue:1.0 alpha:1.0],
             NSKernAttributeName: @0.15,
         }];
+        wordmark.textAlignment = NSTextAlignmentCenter;
         wordmark.adjustsFontSizeToFitWidth = YES;
         wordmark.minimumScaleFactor = 0.82;
         wordmark.numberOfLines = 1;
@@ -65,6 +66,7 @@
         [subtitles enumerateObjectsUsingBlock:^(NSAttributedString *formatedText, NSUInteger idx, BOOL *stop) {
             UILabel *label = [[UILabel alloc] init];
             label.attributedText = formatedText;
+            label.textAlignment = NSTextAlignmentCenter;
             label.translatesAutoresizingMaskIntoConstraints = NO;
             [stackView addArrangedSubview:label];
         }];
@@ -72,6 +74,7 @@
         self.uptimeLabel = [[UILabel alloc] init];
         self.uptimeLabel.translatesAutoresizingMaskIntoConstraints = NO;
         self.uptimeLabel.font = [UIFont monospacedDigitSystemFontOfSize:12 weight:UIFontWeightMedium];
+        self.uptimeLabel.textAlignment = NSTextAlignmentCenter;
         self.uptimeLabel.textColor = [UIColor colorWithRed:0.62 green:0.88 blue:1.0 alpha:0.86];
         self.uptimeLabel.text = @"";
         self.uptimeLabel.hidden = YES;

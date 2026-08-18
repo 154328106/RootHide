@@ -33,6 +33,13 @@
     return _specifiers;
 }
 
+- (void)tableView:(UITableView *)tableView willDisplayCell:(UITableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    [super tableView:tableView willDisplayCell:cell forRowAtIndexPath:indexPath];
+    // Make the grouped section boxes (Developers / UI and Design / Credits) more subtle.
+    cell.backgroundView.alpha = 0.45;
+}
+
 - (void)openSourceCode
 {
     [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://github.com/roothide/Dopamine2-roothide"] options:@{} completionHandler:nil];

@@ -32,7 +32,7 @@
         button.layer.masksToBounds = YES;
         button.layer.cornerCurve = kCACornerCurveContinuous;
         button.layer.borderWidth = 1;
-        button.layer.borderColor = [UIColor colorWithWhite:1 alpha:0.15].CGColor;
+        button.layer.borderColor = [UIColor colorWithWhite:1 alpha:0.08].CGColor;
 
         [self.contentView addSubview:button];
 
