@@ -28,7 +28,7 @@
         _specifiers = [self loadSpecifiersFromPlistName:@"Credits" target:self];
 
         PSSpecifier *headerSpecifier = _specifiers[0];
-        [headerSpecifier setProperty:@"Dopamine 3.0.5 RootHide" forKey:@"title"];
+        [headerSpecifier setProperty:@"Dopamine 3.0.7 RootHide" forKey:@"title"];
     }
     return _specifiers;
 }
