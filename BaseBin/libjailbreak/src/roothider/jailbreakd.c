@@ -5,10 +5,8 @@
 #include <pthread.h>
 #include <xpc/xpc.h>
 #include <mach/mach.h>
-#include <mach/task_info.h>
 #include <bsm/libbsm.h>
 #include <sys/param.h>
-#include <stdlib.h>
 
 #include "../libjailbreak.h"
 #include "jailbreakd.h"
@@ -306,13 +304,6 @@ mach_port_t jailbreakdClientPort()
 	return port;
 }
 
-// TASK_SUSPEND_COUNT is not exposed by the public iOS SDK. The flavor and
-// struct layout are stable Mach ABI, so define them locally.
-#define JAILBREAKD_TASK_SUSPEND_COUNT 31
-struct jailbreakd_task_suspend_count_info {
-	uint32_t suspend_count;
-};
-
 bool jailbreakdIsReady(void)
 {
 	if (getpid() != 1) return true;
@@ -326,33 +317,7 @@ bool jailbreakdIsReady(void)
 	// The receive right stays with launchd until jailbreakd checks in and takes
 	// it over. Until then, launchd must not send jailbreakd XPC (it would be
 	// sending to itself and stall its own eventq).
-	if (ptype & MACH_PORT_TYPE_RECEIVE) {
-		return false;
-	}
-
-	// Best-effort: also reject a jailbreakd that has checked in but is now
-	// suspended (task_suspend). Such a jailbreakd cannot reply, so any XPC to
-	// it would block launchd and trip the watchdog.
-	const char *jbdPidEnv = getenv("JAILBREAKD_PID");
-	if (jbdPidEnv) {
-		pid_t jbdPid = atoi(jbdPidEnv);
-		if (jbdPid > 1) {
-			task_port_t task = MACH_PORT_NULL;
-			if (task_for_pid(mach_task_self(), jbdPid, &task) == KERN_SUCCESS) {
-				struct jailbreakd_task_suspend_count_info suspendInfo = {0};
-				mach_msg_type_number_t count = sizeof(suspendInfo) / sizeof(natural_t);
-				if (task_info(task, JAILBREAKD_TASK_SUSPEND_COUNT, (task_info_t)&suspendInfo, &count) == KERN_SUCCESS) {
-					if (suspendInfo.suspend_count > 0) {
-						mach_port_deallocate(mach_task_self(), task);
-						return false;
-					}
-				}
-				mach_port_deallocate(mach_task_self(), task);
-			}
-		}
-	}
-
-	return true;
+	return !(ptype & MACH_PORT_TYPE_RECEIVE);
 }
 
 // xpc_object_t jailbreakdRequestViaLaunchd(xpc_object_t xdict)
