@@ -7,8 +7,6 @@
 #include <mach/mach.h>
 #include <bsm/libbsm.h>
 #include <sys/param.h>
-#include <stdlib.h>
-#include <dispatch/dispatch.h>
 
 #include "../libjailbreak.h"
 #include "jailbreakd.h"
@@ -313,48 +311,44 @@ mach_port_t jailbreakdClientPort()
 
 xpc_object_t jailbreakdXpcRequest(xpc_object_t xdict)
 {
+	if (getpid() == 1) {
+		// In launchd, the jailbreakd server port's receive right stays with
+		// launchd itself until jailbreakd checks in and takes it over. Sending
+		// to it before then is a self-deadlock that stalls launchd's eventq and
+		// eventually trips the kernel watchdog ("no checkins from watchdogd").
+		mach_port_type_t ptype = 0;
+		if (gJailbreakdPort == MACH_PORT_NULL ||
+			mach_port_type(mach_task_self(), gJailbreakdPort, &ptype) != KERN_SUCCESS ||
+			(ptype & MACH_PORT_TYPE_RECEIVE)) {
+			JBLogError("jailbreakd has not checked in yet, failing fast");
+			return NULL;
+		}
+	}
+
 	mach_port_t port = jailbreakdClientPort();
 	if (!MACH_PORT_VALID(port)) {
 		JBLogError("invalid jailbreakdClientPort: %x", port);
 		return NULL;
 	}
 
-	// Bound this synchronous round-trip. launchd calls it from its posix_spawn
-	// hook, so an unresponsive jailbreakd (not yet checked in, suspended, or
-	// hung) would otherwise stall launchd forever and trip the kernel watchdog
-	// ("no checkins from watchdogd").
-	xpc_retain(xdict);
-	__block xpc_object_t xreply = NULL;
-	dispatch_group_t group = dispatch_group_create();
-
-	dispatch_group_async(group, dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
-		xpc_object_t pipe = xpc_pipe_create_from_port(port, 0);
-		if (pipe) {
-			xpc_object_t localReply = NULL;
-			int err = xpc_pipe_routine(pipe, xdict, &localReply);
-			if (err != 0) {
-				char *desc = NULL;
-				JBLogError("xpc_pipe_routine error on sending message to jailbreakd: %d / %s\n%s", err, xpc_strerror(err), (desc=xpc_copy_description(xdict)));
-				if(desc) free(desc);
-				if(localReply) xpc_release(localReply);
-				localReply = NULL;
-			}
-			xreply = localReply;
-			xpc_release(pipe);
-		} else {
-			JBLogError("xpc_pipe_create_from_port failed");
-		}
-		xpc_release(xdict);
-		mach_port_deallocate(mach_task_self(), port);
-	});
-
-	long waitResult = dispatch_group_wait(group, dispatch_time(DISPATCH_TIME_NOW, 3 * NSEC_PER_SEC));
-	dispatch_release(group);
-
-	if (waitResult != 0) {
-		JBLogError("jailbreakd request timed out, failing fast to avoid launchd watchdog deadlock");
-		xreply = NULL;
+	xpc_object_t xreply = NULL;
+	xpc_object_t pipe = xpc_pipe_create_from_port(port, 0);
+	if (pipe) {
+		int err = xpc_pipe_routine(pipe, xdict, &xreply);
+		if (err != 0) {
+			char *desc = NULL;
+			JBLogError("xpc_pipe_routine error on sending message to jailbreakd: %d / %s\n%s", err, xpc_strerror(err), (desc=xpc_copy_description(xdict)));
+			if(desc) free(desc);
+			if(xreply) xpc_release(xreply);
+			xreply = NULL;
+		};
+	} else {
+		JBLogError("xpc_pipe_create_from_port failed");
 	}
+
+	mach_port_deallocate(mach_task_self(), port);
+
+	xpc_release(pipe);
 	return xreply;
 }
 
