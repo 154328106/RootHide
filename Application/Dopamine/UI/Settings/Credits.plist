@@ -61,14 +61,10 @@
 		<dict>
 			<key>cell</key>
 			<string>PSGroupCell</string>
-			<key>label</key>
-			<string>Developers</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSGroupCell</string>
 			<key>headerCellClass</key>
 			<string>DOCreditsCell</string>
+			<key>sectionTitle</key>
+			<string>DEVELOPERS</string>
 			<key>names</key>
 			<array>
 				<dict>
@@ -112,14 +108,10 @@
 		<dict>
 			<key>cell</key>
 			<string>PSGroupCell</string>
-			<key>label</key>
-			<string>UI and Design</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSGroupCell</string>
 			<key>headerCellClass</key>
 			<string>DOCreditsCell</string>
+			<key>sectionTitle</key>
+			<string>UI AND DESIGN</string>
 			<key>names</key>
 			<array>
 				<dict>
@@ -145,14 +137,10 @@
 		<dict>
 			<key>cell</key>
 			<string>PSGroupCell</string>
-			<key>label</key>
-			<string>Credits</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSGroupCell</string>
 			<key>headerCellClass</key>
 			<string>DOCreditsCell</string>
+			<key>sectionTitle</key>
+			<string>CREDITS</string>
 			<key>names</key>
 			<array>
 				<dict>

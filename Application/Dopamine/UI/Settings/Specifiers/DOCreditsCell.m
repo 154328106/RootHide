@@ -82,6 +82,9 @@
 @interface DOCreditsCell ()
 @property (nonatomic, strong) NSArray<NSDictionary*> *names;
 @property (nonatomic, strong) UICollectionView *collectionView;
+@property (nonatomic, strong) UILabel *sectionTitleLabel;
+@property (nonatomic, strong) UIView *cardView;
+@property (nonatomic, strong) UIVisualEffectView *cardBlurView;
 @end
 
 @implementation DOCreditsCell
@@ -91,6 +94,31 @@
     if (self = [super init])
     {
         self.names = [specifier propertyForKey:@"names"];
+
+        self.cardView = [[UIView alloc] init];
+        self.cardView.translatesAutoresizingMaskIntoConstraints = NO;
+        self.cardView.layer.cornerRadius = 18;
+        self.cardView.layer.cornerCurve = kCACornerCurveContinuous;
+        self.cardView.layer.masksToBounds = YES;
+        self.cardView.layer.borderWidth = 1;
+        self.cardView.layer.borderColor = [UIColor colorWithRed:0.56 green:0.87 blue:1.0 alpha:0.19].CGColor;
+        [self.contentView addSubview:self.cardView];
+
+        UIBlurEffect *blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemUltraThinMaterialDark];
+        self.cardBlurView = [[UIVisualEffectView alloc] initWithEffect:blurEffect];
+        self.cardBlurView.translatesAutoresizingMaskIntoConstraints = NO;
+        self.cardBlurView.userInteractionEnabled = NO;
+        self.cardBlurView.alpha = 0.58;
+        self.cardBlurView.contentView.backgroundColor = [UIColor colorWithRed:0.16 green:0.55 blue:0.76 alpha:0.035];
+        [self.cardView addSubview:self.cardBlurView];
+
+        self.sectionTitleLabel = [[UILabel alloc] init];
+        self.sectionTitleLabel.translatesAutoresizingMaskIntoConstraints = NO;
+        self.sectionTitleLabel.text = [specifier propertyForKey:@"sectionTitle"];
+        self.sectionTitleLabel.font = [UIFont systemFontOfSize:13 weight:UIFontWeightSemibold];
+        self.sectionTitleLabel.textColor = [UIColor colorWithRed:0.72 green:0.88 blue:0.98 alpha:0.80];
+        self.sectionTitleLabel.textAlignment = NSTextAlignmentLeft;
+        [self.cardView addSubview:self.sectionTitleLabel];
         
         UICollectionViewFlowLayout *layout = [[UICollectionViewFlowLayout alloc] init];
         layout.scrollDirection = UICollectionViewScrollDirectionVertical;
@@ -108,13 +136,28 @@
         self.collectionView.delegate = self;
         self.collectionView.dataSource = self;
         
-        [self.contentView addSubview:self.collectionView];
+        [self.cardView addSubview:self.collectionView];
 
         [NSLayoutConstraint activateConstraints:@[
-            [self.collectionView.leadingAnchor constraintEqualToAnchor:self.leadingAnchor constant:20],
-            [self.collectionView.trailingAnchor constraintEqualToAnchor:self.trailingAnchor constant:-20],
-            [self.collectionView.topAnchor constraintEqualToAnchor:self.topAnchor constant:0],
-            [self.collectionView.bottomAnchor constraintEqualToAnchor:self.bottomAnchor constant:-0],
+            [self.cardView.leadingAnchor constraintEqualToAnchor:self.contentView.leadingAnchor constant:20],
+            [self.cardView.trailingAnchor constraintEqualToAnchor:self.contentView.trailingAnchor constant:-20],
+            [self.cardView.topAnchor constraintEqualToAnchor:self.contentView.topAnchor constant:6],
+            [self.cardView.bottomAnchor constraintEqualToAnchor:self.contentView.bottomAnchor constant:-6],
+
+            [self.cardBlurView.leadingAnchor constraintEqualToAnchor:self.cardView.leadingAnchor],
+            [self.cardBlurView.trailingAnchor constraintEqualToAnchor:self.cardView.trailingAnchor],
+            [self.cardBlurView.topAnchor constraintEqualToAnchor:self.cardView.topAnchor],
+            [self.cardBlurView.bottomAnchor constraintEqualToAnchor:self.cardView.bottomAnchor],
+
+            [self.sectionTitleLabel.leadingAnchor constraintEqualToAnchor:self.cardView.leadingAnchor constant:16],
+            [self.sectionTitleLabel.trailingAnchor constraintEqualToAnchor:self.cardView.trailingAnchor constant:-16],
+            [self.sectionTitleLabel.topAnchor constraintEqualToAnchor:self.cardView.topAnchor constant:14],
+            [self.sectionTitleLabel.heightAnchor constraintEqualToConstant:18],
+
+            [self.collectionView.leadingAnchor constraintEqualToAnchor:self.cardView.leadingAnchor constant:12],
+            [self.collectionView.trailingAnchor constraintEqualToAnchor:self.cardView.trailingAnchor constant:-12],
+            [self.collectionView.topAnchor constraintEqualToAnchor:self.sectionTitleLabel.bottomAnchor constant:8],
+            [self.collectionView.bottomAnchor constraintEqualToAnchor:self.cardView.bottomAnchor constant:-12],
         ]];
         
     }
@@ -142,7 +185,7 @@
 
 - (CGFloat)preferredHeightForWidth:(CGFloat)width
 {
-    return CREDITS_CELL_HEIGHT * ceil(self.names.count/2.0);
+    return 58 + CREDITS_CELL_HEIGHT * ceil(self.names.count/2.0);
 }
 
 
