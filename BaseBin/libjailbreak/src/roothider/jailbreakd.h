@@ -22,6 +22,7 @@ void setJailbreakdProcess(pid_t pid);
 
 mach_port_t jailbreakdClientPort();
 mach_port_t jailbreakdServerPort();
+bool jailbreakdIsReady(void);
 
 int jbdTestCall(int value);
 int jbdSystemwideLog(const char* fmt, ...);
@@ -34,4 +35,3 @@ int jbdExecTraceCancel(const char* execfile, bool* detached);
 int jbdSpinlockFixOnly(int pid, bool resume);
 
 #endif // JAILBREAKD_H
-

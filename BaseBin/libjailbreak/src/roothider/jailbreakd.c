@@ -304,6 +304,22 @@ mach_port_t jailbreakdClientPort()
 	return port;
 }
 
+bool jailbreakdIsReady(void)
+{
+	if (getpid() != 1) return true;
+	if (gJailbreakdPort == MACH_PORT_NULL) return false;
+
+	mach_port_type_t ptype = 0;
+	if (mach_port_type(mach_task_self(), gJailbreakdPort, &ptype) != KERN_SUCCESS) {
+		return false;
+	}
+
+	// The receive right stays with launchd until jailbreakd checks in and takes
+	// it over. Until then, launchd must not send jailbreakd XPC (it would be
+	// sending to itself and stall its own eventq).
+	return !(ptype & MACH_PORT_TYPE_RECEIVE);
+}
+
 // xpc_object_t jailbreakdRequestViaLaunchd(xpc_object_t xdict)
 // {
 // 	// to do
@@ -311,18 +327,9 @@ mach_port_t jailbreakdClientPort()
 
 xpc_object_t jailbreakdXpcRequest(xpc_object_t xdict)
 {
-	if (getpid() == 1) {
-		// In launchd, the jailbreakd server port's receive right stays with
-		// launchd itself until jailbreakd checks in and takes it over. Sending
-		// to it before then is a self-deadlock that stalls launchd's eventq and
-		// eventually trips the kernel watchdog ("no checkins from watchdogd").
-		mach_port_type_t ptype = 0;
-		if (gJailbreakdPort == MACH_PORT_NULL ||
-			mach_port_type(mach_task_self(), gJailbreakdPort, &ptype) != KERN_SUCCESS ||
-			(ptype & MACH_PORT_TYPE_RECEIVE)) {
-			JBLogError("jailbreakd has not checked in yet, failing fast");
-			return NULL;
-		}
+	if (!jailbreakdIsReady()) {
+		JBLogError("jailbreakd has not checked in yet, failing fast");
+		return NULL;
 	}
 
 	mach_port_t port = jailbreakdClientPort();

@@ -16,6 +16,7 @@ extern char **environ;
 extern int roothide_launchd_trust_executable(const char* path);
 extern int roothide_launchd___posix_spawn_prehook(pid_t *restrict pidp, const char *restrict path, struct _posix_spawn_args_desc *desc, char *const argv[restrict], char *const envp[restrict]);
 extern int roothide_launchd___posix_spawn_posthook(pid_t *restrict pidp, const char *restrict path, struct _posix_spawn_args_desc *desc, char *const argv[restrict], char *const envp[restrict]);
+extern bool jailbreakdIsReady(void);
 
 extern int systemwide_trust_file_by_path(const char *path);
 extern int platform_set_process_debugged(uint64_t pid, bool fullyDebugged);
@@ -174,9 +175,11 @@ int __posix_spawn_hook(pid_t *restrict pid, const char *restrict path,
 	// We can't support injection into processes that get spawned before the launchd XPC server is up
 	// (Technically we could but there is little reason to, since it requires additional work)
 	if (gInEarlyBoot) {
-		if (!strcmp(path, "/usr/libexec/xpcproxy")) {
-			// The spawned process being xpcproxy indicates that the launchd XPC server is up
-			// All processes spawned including this one should be injected into
+		// Only leave early boot once jailbreakd has checked in and taken over
+		// its server port. On iOS 17 xpcproxy may be spawned before jailbreakd
+		// finishes initializing; injecting before then makes launchd send
+		// jailbreakd XPC to itself and deadlock (watchdog timeout).
+		if (jailbreakdIsReady()) {
 			early_boot_done();
 		}
 		else {
@@ -191,4 +194,3 @@ void initSpawnHooks(void)
 {
 	MSHookFunction(&__posix_spawn, (void *)roothide_launchd___posix_spawn_prehook, NULL);
 }
-
