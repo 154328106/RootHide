@@ -36,8 +36,11 @@
 - (void)tableView:(UITableView *)tableView willDisplayCell:(UITableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath
 {
     [super tableView:tableView willDisplayCell:cell forRowAtIndexPath:indexPath];
-    // Make the grouped section boxes (Developers / UI and Design / Credits) more subtle.
-    cell.backgroundView.alpha = 0.45;
+    // Keep a light, subtle box around the grouped sections (Developers /
+    // UI and Design / Credits): preserve the stock rounded shape but recolor
+    // its fill to a faint tint instead of the stronger default grouped color.
+    cell.backgroundView.alpha = 1.0;
+    cell.backgroundView.backgroundColor = [UIColor colorWithWhite:1.0 alpha:0.06];
 }
 
 - (void)openSourceCode
