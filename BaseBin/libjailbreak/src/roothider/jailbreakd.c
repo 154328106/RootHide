@@ -7,6 +7,10 @@
 #include <mach/mach.h>
 #include <bsm/libbsm.h>
 #include <sys/param.h>
+#include <stdlib.h>
+#include <libproc.h>
+#include <sys/proc.h>
+#include <sys/proc_info.h>
 
 #include "../libjailbreak.h"
 #include "jailbreakd.h"
@@ -316,6 +320,32 @@ xpc_object_t jailbreakdXpcRequest(xpc_object_t xdict)
 		JBLogError("invalid jailbreakdClientPort: %x", port);
 		return NULL;
 	}
+
+	// Fail fast when jailbreakd is stopped, dying, or gone. launchd calls this
+	// synchronously from its posix_spawn hook, so blocking on an unresponsive
+	// jailbreakd stalls launchd's eventq and the kernel watchdog eventually
+	// panics with "no checkins from watchdogd".
+	const char *jbdPidEnv = getenv("JAILBREAKD_PID");
+	if (jbdPidEnv) {
+		pid_t jbdPid = atoi(jbdPidEnv);
+		if (jbdPid > 1) {
+			struct proc_bsdinfo procInfo = {0};
+			int infoRet = proc_pidinfo(jbdPid, PROC_PIDTBSDINFO, 0, &procInfo, sizeof(procInfo));
+			bool jbdUnavailable = true;
+			if (infoRet == sizeof(procInfo)) {
+				// SRUN and SSLEEP are the normal healthy states for a daemon.
+				jbdUnavailable = (procInfo.pbi_status == SSTOP ||
+								  procInfo.pbi_status == SZOMB ||
+								  procInfo.pbi_status == SIDL);
+			}
+			if (jbdUnavailable) {
+				JBLogError("jailbreakd (pid %d) is not runnable (infoRet=%d status=%d), failing fast to avoid launchd watchdog deadlock",
+					jbdPid, infoRet, infoRet == sizeof(procInfo) ? procInfo.pbi_status : -1);
+				mach_port_deallocate(mach_task_self(), port);
+				return NULL;
+			}
+		}
+	}
 	
 	xpc_object_t xreply = NULL;
 	xpc_object_t pipe = xpc_pipe_create_from_port(port, 0);
@@ -480,5 +510,4 @@ int jbdExecTraceCancel(const char* execfile, bool* detached)
 	xpc_release(reply);
 	return result;
 }
-
 
