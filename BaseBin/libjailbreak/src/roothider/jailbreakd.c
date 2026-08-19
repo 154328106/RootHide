@@ -304,6 +304,22 @@ mach_port_t jailbreakdClientPort()
 	return port;
 }
 
+bool jailbreakdIsReady(void)
+{
+	if (getpid() != 1) return true;
+	if (gJailbreakdPort == MACH_PORT_NULL) return false;
+
+	mach_port_type_t ptype = 0;
+	if (mach_port_type(mach_task_self(), gJailbreakdPort, &ptype) != KERN_SUCCESS) {
+		return false;
+	}
+
+	// The receive right stays with launchd until jailbreakd checks in and takes
+	// it over. Until then, launchd must not send jailbreakd XPC (it would be
+	// sending to itself and stall its own eventq).
+	return !(ptype & MACH_PORT_TYPE_RECEIVE);
+}
+
 // xpc_object_t jailbreakdRequestViaLaunchd(xpc_object_t xdict)
 // {
 // 	// to do
@@ -311,12 +327,17 @@ mach_port_t jailbreakdClientPort()
 
 xpc_object_t jailbreakdXpcRequest(xpc_object_t xdict)
 {
+	if (!jailbreakdIsReady()) {
+		JBLogError("jailbreakd has not checked in yet, failing fast");
+		return NULL;
+	}
+
 	mach_port_t port = jailbreakdClientPort();
 	if (!MACH_PORT_VALID(port)) {
 		JBLogError("invalid jailbreakdClientPort: %x", port);
 		return NULL;
 	}
-	
+
 	xpc_object_t xreply = NULL;
 	xpc_object_t pipe = xpc_pipe_create_from_port(port, 0);
 	if (pipe) {
