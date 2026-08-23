@@ -355,7 +355,6 @@ void *boomerang_server(void *context)
         if (!xdict) continue;
 
         bool done = jbserver_received_boomerang_xpc_message(&gBoomerangServer, xdict) == JBS_BOOMERANG_DONE;
-        xpc_release(xdict);
         if (!done) continue;
 
         dispatch_semaphore_signal(info->boomerangDone);
