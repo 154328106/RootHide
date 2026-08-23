@@ -53,6 +53,10 @@ Not included:
 - launchd primitive handoff now fails after 30 seconds instead of blocking the
   app forever.
 - jbctl exit status is validated before opainject begins.
+- The userspace-reboot boomerang receive right remains alive after its initial
+  `DONE` reply because boomerang still needs that server to patch the successor
+  launchd. Releasing only the local send right preserves the validated RootHide
+  lifecycle and prevents a black screen during userspace reboot.
 
 ## Preserved hardening
 

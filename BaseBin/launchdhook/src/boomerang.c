@@ -65,7 +65,12 @@ void boomerang_stashPrimitives()
 	// Wait for boomerang to retrieve the primitives from launchd (handled in server above)
 	dispatch_semaphore_wait(boomerangDone, DISPATCH_TIME_FOREVER);
 	dispatch_source_cancel(serverSource);
-	mach_port_destroy(mach_task_self(), serverPort);
+	// DONE only means the primitive copy finished. Boomerang still uses this
+	// server while it patches the successor launchd, so keep the receive right
+	// alive until the current launchd exits as part of the userspace reboot.
+	// Dropping the receive right here makes the successor launchd fail to take
+	// over and leaves the device at a black screen.
+	mach_port_deallocate(mach_task_self(), serverPort);
 
 	// Stash boomerang pid in environment to later be able to call waitpid on it
 	char pidBuf[10];
