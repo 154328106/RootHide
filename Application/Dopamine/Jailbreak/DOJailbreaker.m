@@ -31,6 +31,7 @@
 #import <libjailbreak/basebin_gen.h>
 #import <CoreServices/LSApplicationProxy.h>
 #import <sys/utsname.h>
+#import <errno.h>
 #import "spawn.h"
 #import "clock_alarm.h"
 #import <IOSurface/IOSurfaceRef.h>
@@ -345,17 +346,22 @@ struct boomerang_info {
     dispatch_semaphore_t boomerangDone;
 };
 
-void *boomerang_server(struct boomerang_info *info)
+void *boomerang_server(void *context)
 {
+    struct boomerang_info *info = context;
     while (true) {
         xpc_object_t xdict = nil;
-        if (!xpc_pipe_receive(info->serverPort, &xdict)) {
-            if (jbserver_received_boomerang_xpc_message(&gBoomerangServer, xdict) == JBS_BOOMERANG_DONE) {
-                dispatch_semaphore_signal(info->boomerangDone);
-                break;
-            }
-        }
+        if (xpc_pipe_receive(info->serverPort, &xdict) != 0) break;
+        if (!xdict) continue;
+
+        bool done = jbserver_received_boomerang_xpc_message(&gBoomerangServer, xdict) == JBS_BOOMERANG_DONE;
+        xpc_release(xdict);
+        if (!done) continue;
+
+        dispatch_semaphore_signal(info->boomerangDone);
+        break;
     }
+    free(info);
     return NULL;
 }
 
@@ -363,45 +369,84 @@ void *boomerang_server(struct boomerang_info *info)
 {
     // Host a boomerang server that will be used by launchdhook to get the jailbreak primitives from this app
     mach_port_t serverPort = MACH_PORT_NULL;
-    mach_port_allocate(mach_task_self(), MACH_PORT_RIGHT_RECEIVE, &serverPort);
-    mach_port_insert_right(mach_task_self(), serverPort, serverPort, MACH_MSG_TYPE_MAKE_SEND);
+    kern_return_t kr = mach_port_allocate(mach_task_self(), MACH_PORT_RIGHT_RECEIVE, &serverPort);
+    if (kr != KERN_SUCCESS) {
+        return [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedLaunchdInjection userInfo:@{NSLocalizedDescriptionKey : @"Failed to allocate launchd handoff port"}];
+    }
+    kr = mach_port_insert_right(mach_task_self(), serverPort, serverPort, MACH_MSG_TYPE_MAKE_SEND);
+    if (kr != KERN_SUCCESS) {
+        mach_port_destroy(mach_task_self(), serverPort);
+        return [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedLaunchdInjection userInfo:@{NSLocalizedDescriptionKey : @"Failed to initialize launchd handoff port"}];
+    }
     
-    struct boomerang_info info;
-    info.serverPort = serverPort;
-    info.boomerangDone = dispatch_semaphore_create(0);
+    dispatch_semaphore_t boomerangDone = dispatch_semaphore_create(0);
+    struct boomerang_info *info = calloc(1, sizeof(*info));
+    if (!info) {
+        mach_port_destroy(mach_task_self(), serverPort);
+        return [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedLaunchdInjection userInfo:@{NSLocalizedDescriptionKey : @"Failed to allocate launchd handoff context"}];
+    }
+    info->serverPort = serverPort;
+    info->boomerangDone = boomerangDone;
     
     pthread_t boomerangThread;
-    pthread_create(&boomerangThread, NULL, (void *(*)(void *))boomerang_server, &info);
+    int threadError = pthread_create(&boomerangThread, NULL, boomerang_server, info);
+    if (threadError != 0) {
+        free(info);
+        mach_port_destroy(mach_task_self(), serverPort);
+        return [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedLaunchdInjection userInfo:@{NSLocalizedDescriptionKey : [NSString stringWithFormat:@"Failed to start launchd handoff thread: %d", threadError]}];
+    }
     pthread_detach(boomerangThread);
 
     // Stash port to server in launchd's initPorts[2]
     // Since we don't have the neccessary entitlements, we need to do it over jbctl
-    posix_spawnattr_t attr;
-    posix_spawnattr_init(&attr);
-    posix_spawnattr_set_registered_ports_np(&attr, (mach_port_t[]){MACH_PORT_NULL, MACH_PORT_NULL, serverPort}, 3);
+    posix_spawnattr_t attr = NULL;
+    int attrError = posix_spawnattr_init(&attr);
+    if (attrError != 0) {
+        mach_port_destroy(mach_task_self(), serverPort);
+        return [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedLaunchdInjection userInfo:@{NSLocalizedDescriptionKey : [NSString stringWithFormat:@"Initializing spawn attributes failed: %d", attrError]}];
+    }
+    attrError = posix_spawnattr_set_registered_ports_np(&attr, (mach_port_t[]){MACH_PORT_NULL, MACH_PORT_NULL, serverPort}, 3);
+    if (attrError != 0) {
+        posix_spawnattr_destroy(&attr);
+        mach_port_destroy(mach_task_self(), serverPort);
+        return [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedLaunchdInjection userInfo:@{NSLocalizedDescriptionKey : [NSString stringWithFormat:@"Registering launchd handoff port failed: %d", attrError]}];
+    }
     pid_t spawnedPid = 0;
     const char *jbctlPath = JBROOT_PATH("/basebin/jbctl");
     int spawnError = posix_spawn(&spawnedPid, jbctlPath, NULL, &attr, (char *const *)(const char *[]){ jbctlPath, "internal", "launchd_stash_port", NULL }, NULL);
+    posix_spawnattr_destroy(&attr);
     if (spawnError != 0) {
+        mach_port_destroy(mach_task_self(), serverPort);
         return [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedLaunchdInjection userInfo:@{NSLocalizedDescriptionKey : [NSString stringWithFormat:@"Spawning jbctl failed with error code %d", spawnError]}];
     }
-    posix_spawnattr_destroy(&attr);
     int status = 0;
     do {
         if (waitpid(spawnedPid, &status, 0) == -1) {
+            if (errno == EINTR) continue;
+            mach_port_destroy(mach_task_self(), serverPort);
             return [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedLaunchdInjection userInfo:@{NSLocalizedDescriptionKey : @"Waiting for jbctl failed"}];;
         }
     } while (!WIFEXITED(status) && !WIFSIGNALED(status));
+    if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+        mach_port_destroy(mach_task_self(), serverPort);
+        return [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedLaunchdInjection userInfo:@{NSLocalizedDescriptionKey : @"jbctl failed to prepare the launchd handoff"}];
+    }
 
     // Inject launchdhook.dylib into launchd via opainject
     int r = exec_cmd(JBROOT_PATH("/basebin/opainject"), "1", JBROOT_PATH("/basebin/launchdhook.dylib"), NULL);
     if (r != 0) {
+        mach_port_destroy(mach_task_self(), serverPort);
         return [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedLaunchdInjection userInfo:@{NSLocalizedDescriptionKey : [NSString stringWithFormat:@"opainject failed with error code %d", r]}];
     }
 
-    // Wait for everything to finish
-    dispatch_semaphore_wait(info.boomerangDone, DISPATCH_TIME_FOREVER);
-    mach_port_deallocate(mach_task_self(), serverPort);
+    // Do not leave the UI blocked forever if launchd fails to complete the
+    // primitive handoff. Destroying the port also lets the receiver exit.
+    dispatch_time_t handoffDeadline = dispatch_time(DISPATCH_TIME_NOW, 30 * NSEC_PER_SEC);
+    if (dispatch_semaphore_wait(boomerangDone, handoffDeadline) != 0) {
+        mach_port_destroy(mach_task_self(), serverPort);
+        return [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedLaunchdInjection userInfo:@{NSLocalizedDescriptionKey : @"Timed out waiting for launchd primitive handoff"}];
+    }
+    mach_port_destroy(mach_task_self(), serverPort);
 
     return nil;
 }

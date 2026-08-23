@@ -30,19 +30,21 @@ endif
 	mkdir -p build/Build/Products/Debug-iphoneos/Dopamine.app/Base.lproj
 	cp -a Dopamine/Prebuilt/Base.lproj/LaunchScreen.storyboardc build/Build/Products/Debug-iphoneos/Dopamine.app/Base.lproj/
 	cp -a Dopamine/Resources/*.deb build/Build/Products/Debug-iphoneos/Dopamine.app/
-# ifeq ($(PALEHIDE), 1)
-	THEOS="$(CURDIR)/../theos" make -C Dopamine/Exploits/palera1n package
+	# Keep only the iOS 16 arm64e exploit set in the packaged app. kfd and
+	# dmaFail are built by Xcode; Titan and momentarius are supplied prebuilt.
+	rm -rf build/Build/Products/Debug-iphoneos/Dopamine.app/Frameworks/badRecovery.framework
+	rm -rf build/Build/Products/Debug-iphoneos/Dopamine.app/Frameworks/weightBufs.framework
+	rm -rf build/Build/Products/Debug-iphoneos/Dopamine.app/Frameworks/multicast_bytecopy.framework
+	rm -rf build/Build/Products/Debug-iphoneos/Dopamine.app/Frameworks/ClearSword.framework
+	rm -rf build/Build/Products/Debug-iphoneos/Dopamine.app/Frameworks/DarkSword.framework
 	rm -rf build/Build/Products/Debug-iphoneos/Dopamine.app/Frameworks/palera1n.framework
-	cp -a Dopamine/Exploits/palera1n/.framework build/Build/Products/Debug-iphoneos/Dopamine.app/Frameworks/palera1n.framework
-	for framework in ClearSword DarkSword Titan momentarius; do \
+	for framework in Titan momentarius; do \
 		rm -rf build/Build/Products/Debug-iphoneos/Dopamine.app/Frameworks/$$framework.framework; \
 		cp -a Dopamine/Prebuilt/Frameworks/$$framework.framework build/Build/Products/Debug-iphoneos/Dopamine.app/Frameworks/; \
 	done
-# endif
 
 
 clean:
-	make -C Dopamine/Exploits/palera1n clean
 	rm -rf build Payload Dopamine.ipa Dopamine.tipa
 
 build_clean:

@@ -44,6 +44,8 @@ struct system_info {
 		char *rootPath;
 		char *appIdentifier;
 		uint64_t jbrand;
+		// Reserved to keep the serialized jailbreak-info layout stable. The
+		// iOS 16 clean build does not provide a palera1n/palehide runtime.
 		uint64_t palera1n;
 		bool dyld_patch_enabled;
 	} jailbreakInfo;

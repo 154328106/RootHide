@@ -8,7 +8,7 @@ include $(THEOS)/makefiles/common.mk
 
 TWEAK_NAME = roothidehooks
 
-roothidehooks_FILES = $(wildcard *.x) $(wildcard *.c) $(wildcard *.m)
+roothidehooks_FILES = $(filter-out palera1n.x,$(wildcard *.x)) $(wildcard *.c) $(wildcard *.m)
 roothidehooks_CFLAGS = -Werror -fobjc-arc -fno-modules -I../.include
 roothidehooks_LDFLAGS = -rpath @loader_path/.jbroot/Library/Frameworks -rpath @loader_path/fallback -L../libjailbreak -ljailbreak
 roothidehooks_INSTALL_PATH = /basebin

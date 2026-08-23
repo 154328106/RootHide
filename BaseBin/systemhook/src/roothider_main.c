@@ -202,7 +202,8 @@ int roothide_systemhook___posix_spawn_prehook(pid_t *restrict pidp, const char *
 
 	if(!desc || !desc->attrp) {
 		posix_spawnattr_t attr=NULL;
-		posix_spawnattr_init(&attr);
+		int attrError = posix_spawnattr_init(&attr);
+		if (attrError != 0) return attrError;
 		int ret = posix_spawn(pidp, path, (desc && desc->file_actions) ? &desc->file_actions : NULL, &attr, argv, envp);
 		posix_spawnattr_destroy(&attr);
 		return ret;
@@ -322,8 +323,17 @@ int roothide_systemhook___execve_prehook(const char *path, char *const argv[], c
 {
 	//try POSIX_SPAWN_SETEXEC first
 	posix_spawnattr_t attr = NULL;
-	posix_spawnattr_init(&attr);
-	posix_spawnattr_setflags(&attr, POSIX_SPAWN_SETEXEC);
+	int attrError = posix_spawnattr_init(&attr);
+	if (attrError != 0) {
+		errno = attrError;
+		return -1;
+	}
+	attrError = posix_spawnattr_setflags(&attr, POSIX_SPAWN_SETEXEC);
+	if (attrError != 0) {
+		posix_spawnattr_destroy(&attr);
+		errno = attrError;
+		return -1;
+	}
 	int ret = posix_spawn(NULL, path, NULL, &attr, argv, envp);
 	posix_spawnattr_destroy(&attr);
 
@@ -497,21 +507,6 @@ void roothide_init_with_executable(const char* executable)
 			litehook_hook_function(__sysctlbyname, __sysctlbyname_hook);
 		}
 	}
-
-#ifndef __arm64e__
-	if(strcmp(executable, "/System/Library/Frameworks/LocalAuthentication.framework/Support/coreauthd")==0
-	|| strcmp(executable, "/System/Library/Frameworks/CryptoTokenKit.framework/ctkd")==0
-	|| strcmp(executable, "/usr/libexec/securityd")==0
-	|| strcmp(executable, "/usr/libexec/keybagd")==0) {
-		if(jbclient_palehide_present())
-		{
-			void* roothidehooks = dlopen(JBROOT_PATH("/basebin/roothidehooks.dylib"), RTLD_NOW);
-			ASSERT(roothidehooks != NULL);
-			void (*palera1n)() = dlsym(roothidehooks, "palera1n");
-			palera1n();
-		}
-	}
-#endif
 
 	if(string_has_suffix(executable, "/Dopamine.app/Dopamine")) {
 		loadPathHook(); //requre jit

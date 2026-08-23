@@ -91,26 +91,11 @@ static int roothide_jailbroken_check(audit_token_t *callerToken, bool* jailbroke
 	return 0;
 }
 
-static int roothide_palehide_present(audit_token_t *callerToken, bool* palehide)
+static int roothide_reserved_legacy_action(audit_token_t *callerToken, bool* present)
 {
-	static bool result = false;
-
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-		if(jbinfo(palera1n)=='hide') {
-			result = true;
-		} else {
-			// hang forver on iphone7p ios15.8.2
-			// mach_port_t tfp0 = MACH_PORT_NULL;
-			// kern_return_t kr = task_for_pid(mach_task_self(), 0, &tfp0);
-			// if(kr == KERN_SUCCESS && MACH_PORT_VALID(tfp0)) {
-			// 	mach_port_deallocate(mach_task_self(), tfp0);
-			// 	result = true;
-			// }
-		}
-	});
-
-	*palehide = result;
+	// Preserve the action number for protocol/ABI stability while removing the
+	// old palehide detection path from this iOS 16 arm64e-only build.
+	*present = false;
 	return 0;
 }
 
@@ -207,9 +192,9 @@ struct jbserver_domain gRootHideDomain = {
                     { 0 },
             },
         },
-		//JBS_ROOTHIDE_PALEHIDE_PRESENT
+		// Reserved legacy protocol slot
         {
-            .handler = roothide_palehide_present,
+            .handler = roothide_reserved_legacy_action,
             .args = (jbserver_arg[]) {
                     { .name = "caller-token", .type = JBS_TYPE_CALLER_TOKEN, .out = false },
                     { .name = "palehide", .type = JBS_TYPE_BOOL, .out = true },

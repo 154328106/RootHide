@@ -30,10 +30,10 @@ void boomerang_stashPrimitives()
 	dispatch_source_set_event_handler(serverSource, ^{
 		xpc_object_t xdict = NULL;
 		if (!xpc_pipe_receive(serverPort, &xdict)) {
-			if (jbserver_received_boomerang_xpc_message(&gBoomerangServer, xdict) == JBS_BOOMERANG_DONE) {
+			if (xdict && jbserver_received_boomerang_xpc_message(&gBoomerangServer, xdict) == JBS_BOOMERANG_DONE) {
 				dispatch_semaphore_signal(boomerangDone);
 			}
-			xpc_release(xdict);
+			if (xdict) xpc_release(xdict);
 		}
 	});
 	dispatch_resume(serverSource);
@@ -41,16 +41,31 @@ void boomerang_stashPrimitives()
 	// Spawn boomerang process
 	pid_t boomerangPid = 0;
 	posix_spawnattr_t attr = NULL;
-	posix_spawnattr_init(&attr);
-	posix_spawnattr_set_registered_ports_np(&attr, (mach_port_t[]){ MACH_PORT_NULL, MACH_PORT_NULL, serverPort }, 3);
-	int ret = posix_spawn(&boomerangPid, JBROOT_PATH("/basebin/boomerang"), NULL, &attr, NULL, NULL);
-	if (ret != 0) return;
+	int ret = posix_spawnattr_init(&attr);
+	if (ret != 0) {
+		dispatch_source_cancel(serverSource);
+		mach_port_destroy(mach_task_self(), serverPort);
+		return;
+	}
+	ret = posix_spawnattr_set_registered_ports_np(&attr, (mach_port_t[]){ MACH_PORT_NULL, MACH_PORT_NULL, serverPort }, 3);
+	if (ret != 0) {
+		posix_spawnattr_destroy(&attr);
+		dispatch_source_cancel(serverSource);
+		mach_port_destroy(mach_task_self(), serverPort);
+		return;
+	}
+	ret = posix_spawn(&boomerangPid, JBROOT_PATH("/basebin/boomerang"), NULL, &attr, NULL, NULL);
 	posix_spawnattr_destroy(&attr);
+	if (ret != 0) {
+		dispatch_source_cancel(serverSource);
+		mach_port_destroy(mach_task_self(), serverPort);
+		return;
+	}
 
 	// Wait for boomerang to retrieve the primitives from launchd (handled in server above)
 	dispatch_semaphore_wait(boomerangDone, DISPATCH_TIME_FOREVER);
 	dispatch_source_cancel(serverSource);
-	mach_port_deallocate(mach_task_self(), serverPort);
+	mach_port_destroy(mach_task_self(), serverPort);
 
 	// Stash boomerang pid in environment to later be able to call waitpid on it
 	char pidBuf[10];

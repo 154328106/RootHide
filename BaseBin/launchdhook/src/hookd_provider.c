@@ -14,12 +14,26 @@ int posix_spawnattr_set_registered_ports_np(posix_spawnattr_t * __restrict attr,
 int hookd_start(pid_t *pid, mach_port_t *machPort)
 {
 	mach_port_t checkinPort = MACH_PORT_NULL;
-	mach_port_allocate(mach_task_self(), MACH_PORT_RIGHT_RECEIVE, &checkinPort);
-	mach_port_insert_right(mach_task_self(), checkinPort, checkinPort, MACH_MSG_TYPE_MAKE_SEND);
+	kern_return_t kr = mach_port_allocate(mach_task_self(), MACH_PORT_RIGHT_RECEIVE, &checkinPort);
+	if (kr != KERN_SUCCESS) return kr;
+	kr = mach_port_insert_right(mach_task_self(), checkinPort, checkinPort, MACH_MSG_TYPE_MAKE_SEND);
+	if (kr != KERN_SUCCESS) {
+		mach_port_destroy(mach_task_self(), checkinPort);
+		return kr;
+	}
 
-	posix_spawnattr_t attr;
-    posix_spawnattr_init(&attr);
-    posix_spawnattr_set_registered_ports_np(&attr, (mach_port_t[]){MACH_PORT_NULL, MACH_PORT_NULL, checkinPort}, 3);
+	posix_spawnattr_t attr = NULL;
+    int r = posix_spawnattr_init(&attr);
+	if (r != 0) {
+		mach_port_destroy(mach_task_self(), checkinPort);
+		return r;
+	}
+    r = posix_spawnattr_set_registered_ports_np(&attr, (mach_port_t[]){MACH_PORT_NULL, MACH_PORT_NULL, checkinPort}, 3);
+	if (r != 0) {
+		posix_spawnattr_destroy(&attr);
+		mach_port_destroy(mach_task_self(), checkinPort);
+		return r;
+	}
 
 	const char *envp[] = {
 		"_SafeMode=1",
@@ -27,15 +41,18 @@ int hookd_start(pid_t *pid, mach_port_t *machPort)
 	};
 
 	const char *path = JBROOT_PATH("/basebin/hookd");
-	int r = posix_spawn(pid, path, NULL, &attr, (char *[]){ (char *)path, NULL }, (char *const *)envp);
+	r = posix_spawn(pid, path, NULL, &attr, (char *[]){ (char *)path, NULL }, (char *const *)envp);
+	posix_spawnattr_destroy(&attr);
 	if (r != 0) {
+		mach_port_destroy(mach_task_self(), checkinPort);
 		return r;
 	}
 
 	mach_msg_header_t hdr = { 0 };
 	hdr.msgh_size = sizeof(hdr) + MAX_TRAILER_SIZE;
-	kern_return_t kr = mach_msg(&hdr, MACH_RCV_MSG, 0, hdr.msgh_size, checkinPort, 0, 0);
+	kr = mach_msg(&hdr, MACH_RCV_MSG, 0, hdr.msgh_size, checkinPort, 0, 0);
 	if (kr != KERN_SUCCESS) {
+		mach_port_destroy(mach_task_self(), checkinPort);
 		return kr;
 	}
 
@@ -43,7 +60,7 @@ int hookd_start(pid_t *pid, mach_port_t *machPort)
 	mach_port_mod_refs(mach_task_self(), gHookdPort, MACH_PORT_RIGHT_SEND, 1);
 
 	mach_msg_destroy(&hdr);
-	mach_port_deallocate(mach_task_self(), checkinPort);
+	mach_port_destroy(mach_task_self(), checkinPort);
 
 	return 0;
 }

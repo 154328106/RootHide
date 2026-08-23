@@ -1,5 +1,8 @@
 # roothide Dopamine 2
 
+This branch also contains an iOS 16 arm64e-only clean build. Its scope and
+audited upstream delta are documented in [CLEAN-IOS16.md](CLEAN-IOS16.md).
+
 - Document: https://github.com/roothide/Developer
 
 - Support: https://twitter.com/roothideDev

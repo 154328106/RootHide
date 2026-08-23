@@ -594,17 +594,7 @@ kern_return_t bootstrap_look_up(mach_port_t port, const char *service, mach_port
 
 bool otherJailbreakActived(bool postexploit)
 {
-    if(!postexploit)
-    {
-        // // may be palehide
-        // uint32_t csflags = 0;
-        // csops(getpid(), CS_OPS_STATUS, &csflags, sizeof(csflags));
-        // if((csflags & CS_PLATFORM_BINARY) != 0) {
-        //     if(!builtint_palehide_test()) {
-        //         return true; // rootless dopamine 2.x
-        //     }
-        // }
-    }
+    (void)postexploit;
 
     if(!jbclient_roothide_jailbroken())
     {
@@ -686,9 +676,12 @@ void exec_set_patch(bool enabled)
 int exec_cmd_roothide_spawn(pid_t* pidp, const char* path, const posix_spawn_file_actions_t *fap, const posix_spawnattr_t *attrp, char *const argv[], char *const envp[])
 {
     posix_spawnattr_t attr = NULL;
+    bool ownsAttr = false;
     if(!attrp) {
-        posix_spawnattr_init(&attr);
+        int attrError = posix_spawnattr_init(&attr);
+        if (attrError != 0) return attrError;
         attrp = &attr;
+        ownsAttr = true;
     }
 
     int argc = 0;
@@ -709,22 +702,37 @@ int exec_cmd_roothide_spawn(pid_t* pidp, const char* path, const posix_spawn_fil
     if(need_patch_child && !dyld_patch_enabled()) {
         if(jbclient_trust_executable_recurse(path, NULL) != 0) {
             JBLogError("Failed to trust executable: %s", path);
+            if (ownsAttr) posix_spawnattr_destroy(&attr);
             return 999;
         }
     }
 
     short flags=0;
-    posix_spawnattr_getflags(attrp, &flags);
+    int attrError = posix_spawnattr_getflags(attrp, &flags);
+    if (attrError != 0) {
+        if (ownsAttr) posix_spawnattr_destroy(&attr);
+        return attrError;
+    }
     bool should_resume = (flags & POSIX_SPAWN_START_SUSPENDED) == 0;
 
     JBLogDebug("exec_cmd_roothide_spawn path=%s flags=%x", path, flags);
     if (argv) for (int i = 0; argv[i]; i++) JBLogDebug("\targs[%d] = %s", i, argv[i]);
     if (envp) for (int i = 0; envp[i]; i++) JBLogDebug("\tenvp[%d] = %s", i, envp[i]);
 
-    posix_spawnattr_setflags(attrp, flags | POSIX_SPAWN_START_SUSPENDED);
+    attrError = posix_spawnattr_setflags(attrp, flags | POSIX_SPAWN_START_SUSPENDED);
+    if (attrError != 0) {
+        if (ownsAttr) posix_spawnattr_destroy(&attr);
+        return attrError;
+    }
 
     pid_t pid = 0;
     int ret = posix_spawn(&pid, path, fap, attrp, argv, envp);
+    // A caller-owned attribute object must leave with exactly the flags it had
+    // on entry, including when spawning or child patching fails.
+    if (!ownsAttr) {
+        int restoreError = posix_spawnattr_setflags(attrp, flags);
+        if (restoreError != 0) JBLogError("Failed to restore spawn flags: %d", restoreError);
+    }
     if(pidp) *pidp = pid;
 
     JBLogDebug("spawn ret=%d pid=%d", ret, pid);
@@ -738,7 +746,7 @@ int exec_cmd_roothide_spawn(pid_t* pidp, const char* path, const posix_spawn_fil
                 //jailbreak internal spawn, just let it hang forever so that we could get a panic log
                 //kill(pid, SIGQUIT); //core dump
                 //kill(pid, SIGKILL);
-                return 202;
+                ret = 202;
             }
         } else {
             if (should_resume) {
@@ -747,9 +755,8 @@ int exec_cmd_roothide_spawn(pid_t* pidp, const char* path, const posix_spawn_fil
         }
     }
 
-    if(attr) {
+    if(ownsAttr) {
         posix_spawnattr_destroy(&attr);
-        attrp = NULL;
     }
 
     return ret;

@@ -211,12 +211,7 @@ int reboot3(uint64_t flags, ...);
 
 - (NSString *)versionSupportString
 {
-    if ([self isArm64e]) {
-        return @"iOS 15.0 - 16.6.1 (arm64e)";
-    }
-    else {
-        return @"iOS 15.0 - 15.8.6 / 16.0 - 16.6.1 (arm64)";
-    }
+    return @"iOS 16.0 - 16.6.1 (A12 - A16)";
 }
 
 - (BOOL)isInstalledThroughTrollStore
@@ -637,6 +632,12 @@ int reboot3(uint64_t flags, ...);
 
 - (BOOL)isSupported
 {
+    // The clean build intentionally supports only modern arm64e devices on
+    // iOS 16. Keep this gate outside exploit manifests so accidentally bundled
+    // iOS 15/17 exploit metadata cannot widen the runtime support surface.
+    NSOperatingSystemVersion version = NSProcessInfo.processInfo.operatingSystemVersion;
+    if (version.majorVersion != 16 || ![self isArm64e]) return NO;
+
     //cpu_subtype_t cpuFamily = 0;
     //size_t cpuFamilySize = sizeof(cpuFamily);
     //sysctlbyname("hw.cpufamily", &cpuFamily, &cpuFamilySize, NULL, 0);
