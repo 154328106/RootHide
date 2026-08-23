@@ -328,7 +328,13 @@
                     [manageMountsSpecifier setProperty:@"manageMountsPressed" forKey:@"action"];
                     [specifiers addObject:manageMountsSpecifier];
                 }
-                if ((envManager.isJailbroken || envManager.isInstalledThroughTrollStore) && envManager.isBootstrapped) {
+                // Ported from opa334 Dopamine 3.0.8 (e4b975d): the direct "Remove Jailbreak"
+                // (trash) button is only offered when NOT jailbroken and installed via TrollStore.
+                // Pressing it while jailbroken is russian roulette (may panic / leave a half-uninstalled
+                // state), so it is hidden in that case. The supported uninstall path while jailbroken is
+                // the "Remove Jailbreak" toggle above + rejailbreak/reboot. (RootHide iOS16: Hide
+                // Jailbreak button stays disabled, RootHide handles hiding via randomized jbroot.)
+                if (!envManager.isJailbroken && envManager.isInstalledThroughTrollStore && envManager.isBootstrapped) {
 /*
                     PSSpecifier *hideUnhideJailbreakSpecifier = [PSSpecifier preferenceSpecifierNamed:@"" target:self set:defSetter get:defGetter detail:nil cell:PSStaticTextCell edit:nil];
                     [hideUnhideJailbreakSpecifier setProperty:[DOButtonCell class] forKey:@"cellClass"];
