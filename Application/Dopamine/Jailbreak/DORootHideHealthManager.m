@@ -300,10 +300,10 @@ static NSString *const DORootHideHealthErrorDomain = @"DORootHideHealthErrorDoma
 
     NSMutableSet<NSString *> *identifiers = [NSMutableSet setWithArray:pathsByIdentifier.allKeys];
     NSDictionary<NSString *, NSString *> *userConflicts = [self userApplicationPathsForBundleIdentifiers:identifiers];
-    NSUInteger duplicateCount = 0;
-    NSUInteger conflictCount = userConflicts.count;
-    NSUInteger missingCount = 0;
-    NSUInteger staleCount = 0;
+    __block NSUInteger duplicateCount = 0;
+    __block NSUInteger conflictCount = userConflicts.count;
+    __block NSUInteger missingCount = 0;
+    __block NSUInteger staleCount = 0;
 
     [pathsByIdentifier enumerateKeysAndObjectsUsingBlock:^(NSString *bundleIdentifier, NSMutableArray<NSString *> *paths, BOOL *stop) {
         if (paths.count > 1) {
