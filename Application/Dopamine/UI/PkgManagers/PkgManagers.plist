@@ -11,6 +11,10 @@
 		<string>Sileo</string>
 		<key>Package</key>
 		<string>sileo.deb</string>
+		<key>Debian Package</key>
+		<string>org.coolstar.sileo</string>
+		<key>Application</key>
+		<string>Sileo.app</string>
 	</dict>
 	<dict>
 		<key>Display Name</key>
@@ -21,6 +25,10 @@
 		<string>Zebra</string>
 		<key>Package</key>
 		<string>zebra.deb</string>
+		<key>Debian Package</key>
+		<string>xyz.willy.zebra</string>
+		<key>Application</key>
+		<string>Zebra.app</string>
 	</dict>
 </array>
 </plist>

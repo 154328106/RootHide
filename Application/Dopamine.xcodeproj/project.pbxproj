@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A16000012F00000100000001 /* DORootHideHealthManager.m in Sources */ = {isa = PBXBuildFile; fileRef = A16000012F00000100000004 /* DORootHideHealthManager.m */; };
+		A16000012F00000100000002 /* DORootHideHealthViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = A16000012F00000100000006 /* DORootHideHealthViewController.m */; };
 		040622AA2B77FE8E00393AAD /* DOPkgManagerPickerViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 040622A92B77FE8E00393AAD /* DOPkgManagerPickerViewController.m */; };
 		042479A22B66916B0082581B /* DOCreditsViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 0424796B2B66916B0082581B /* DOCreditsViewController.m */; };
 		042479A32B66916B0082581B /* DOSettingsController.m in Sources */ = {isa = PBXBuildFile; fileRef = 0424796C2B66916B0082581B /* DOSettingsController.m */; };
@@ -274,6 +276,10 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		A16000012F00000100000003 /* DORootHideHealthManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DORootHideHealthManager.h; sourceTree = "<group>"; };
+		A16000012F00000100000004 /* DORootHideHealthManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = DORootHideHealthManager.m; sourceTree = "<group>"; };
+		A16000012F00000100000005 /* DORootHideHealthViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DORootHideHealthViewController.h; sourceTree = "<group>"; };
+		A16000012F00000100000006 /* DORootHideHealthViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = DORootHideHealthViewController.m; sourceTree = "<group>"; };
 		040622A82B77FE8E00393AAD /* DOPkgManagerPickerViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DOPkgManagerPickerViewController.h; sourceTree = "<group>"; };
 		040622A92B77FE8E00393AAD /* DOPkgManagerPickerViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = DOPkgManagerPickerViewController.m; sourceTree = "<group>"; };
 		042479682B66916B0082581B /* DOJailbreakButton.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DOJailbreakButton.h; sourceTree = "<group>"; };
@@ -651,6 +657,8 @@
 				0424796B2B66916B0082581B /* DOCreditsViewController.m */,
 				042479702B66916B0082581B /* DOSettingsController.h */,
 				0424796C2B66916B0082581B /* DOSettingsController.m */,
+				A16000012F00000100000005 /* DORootHideHealthViewController.h */,
+				A16000012F00000100000006 /* DORootHideHealthViewController.m */,
 				04DD0B332B7BA38C0055DE4F /* DOLicenseViewController.h */,
 				04DD0B342B7BA38C0055DE4F /* DOLicenseViewController.m */,
 			);
@@ -795,6 +803,8 @@
 				8C029F422B4DFD5D0071DE58 /* DOExploitManager.m */,
 				8C029F5E2B4E25350071DE58 /* DOEnvironmentManager.h */,
 				8C029F5F2B4E25350071DE58 /* DOEnvironmentManager.m */,
+				A16000012F00000100000003 /* DORootHideHealthManager.h */,
+				A16000012F00000100000004 /* DORootHideHealthManager.m */,
 				8C4ABEBC2B52274300B43C9B /* DOPreferenceManager.h */,
 				8C4ABEBD2B52274300B43C9B /* DOPreferenceManager.m */,
 			);
@@ -1674,6 +1684,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A16000012F00000100000001 /* DORootHideHealthManager.m in Sources */,
+				A16000012F00000100000002 /* DORootHideHealthViewController.m in Sources */,
 				8C609C9E2C19B4270023DD12 /* NSString+Version.m in Sources */,
 				042479A62B66916B0082581B /* DOHeaderCell.m in Sources */,
 				8C6599DD2C555A71000FF57F /* DOPSJetsamListItemsController.h in Sources */,

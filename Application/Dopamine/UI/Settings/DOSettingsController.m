@@ -20,6 +20,7 @@
 #import "DOSceneDelegate.h"
 #import "DOPSJetsamListItemsController.h"
 #import "DOButtonCell.h"
+#import "DORootHideHealthViewController.h"
 
 @interface DOSettingsController ()
 
@@ -285,13 +286,9 @@
                 [specifiers addObject:actionsGroupSpecifier];
                 
                 if (envManager.isJailbroken) {
-                    PSSpecifier *refreshAppsSpecifier = [PSSpecifier preferenceSpecifierNamed:@"" target:self set:defSetter get:defGetter detail:nil cell:PSStaticTextCell edit:nil];
-                    [refreshAppsSpecifier setProperty:@"Button_Refresh_Jailbreak_Apps" forKey:@"title"];
-                    [refreshAppsSpecifier setProperty:[DOButtonCell class] forKey:@"cellClass"];
-                    [refreshAppsSpecifier setProperty:buttonHeight forKey:@"height"];
-                    [refreshAppsSpecifier setProperty:@"arrow.triangle.2.circlepath" forKey:@"image"];
-                    [refreshAppsSpecifier setProperty:@"refreshJailbreakAppsPressed" forKey:@"action"];
-                    [specifiers addObject:refreshAppsSpecifier];
+                    PSSpecifier *healthSpecifier = [PSSpecifier preferenceSpecifierNamed:DOLocalizedString(@"Health_Settings_Entry") target:self set:nil get:nil detail:[DORootHideHealthViewController class] cell:PSLinkCell edit:nil];
+                    [healthSpecifier setProperty:@"heart.text.square" forKey:@"iconImageSystem"];
+                    [specifiers addObject:healthSpecifier];
                     
                     PSSpecifier *changeMobilePasswordSpecifier = [PSSpecifier preferenceSpecifierNamed:@"" target:self set:defSetter get:defGetter detail:nil cell:PSStaticTextCell edit:nil];
                     [changeMobilePasswordSpecifier setProperty:@"Button_Change_Mobile_Password" forKey:@"title"];
@@ -300,15 +297,15 @@
                     [changeMobilePasswordSpecifier setProperty:@"key" forKey:@"image"];
                     [changeMobilePasswordSpecifier setProperty:@"changeMobilePasswordWithAuthenticationPressed" forKey:@"action"];
                     [specifiers addObject:changeMobilePasswordSpecifier];
-                    
+
+                    // Keep the existing package-manager selector as an explicit
+                    // install/manage action. Health repairs never use this broad
+                    // path; they repair only the affected Sileo or Zebra entry.
                     PSSpecifier *reinstallPackageManagersSpecifier = [PSSpecifier preferenceSpecifierNamed:@"" target:self set:defSetter get:defGetter detail:nil cell:PSStaticTextCell edit:nil];
                     [reinstallPackageManagersSpecifier setProperty:@"Button_Reinstall_Package_Managers" forKey:@"title"];
                     [reinstallPackageManagersSpecifier setProperty:[DOButtonCell class] forKey:@"cellClass"];
                     [reinstallPackageManagersSpecifier setProperty:buttonHeight forKey:@"height"];
-                    if (@available(iOS 16.0, *))
-                        [reinstallPackageManagersSpecifier setProperty:@"shippingbox.and.arrow.backward" forKey:@"image"];
-                    else
-                        [reinstallPackageManagersSpecifier setProperty:@"shippingbox" forKey:@"image"];
+                    [reinstallPackageManagersSpecifier setProperty:@"shippingbox.and.arrow.backward" forKey:@"image"];
                     [reinstallPackageManagersSpecifier setProperty:@"reinstallPackageManagersPressed" forKey:@"action"];
                     [specifiers addObject:reinstallPackageManagersSpecifier];
 

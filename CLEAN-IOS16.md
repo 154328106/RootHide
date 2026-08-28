@@ -4,7 +4,8 @@
 
 - Runtime target: iOS 16.0 through 16.6.1 on arm64e (A12 through A16).
 - Base: the locally validated `roothide-3.0.7-stable` branch.
-- UI: unchanged from that branch.
+- UI: the validated layout is preserved, with an additional RootHide Health
+  page under Settings while jailbroken.
 - RootHide core: randomized JBROOT, randomized SystemHook paths, blacklist and
   conflict detection, injection, XPF, ChOma, opainject and litehook remain on
   the validated versions.
@@ -68,9 +69,32 @@ Not included:
 - Titan/landa offsets, ROP chain and exploit timing used by the A16/iOS 16.6.1
   validated path.
 
+## RootHide Health and precise repair
+
+- The unified page checks Bootstrap, jailbreak app registration, Sileo,
+  Zebra, and the RootHide injection hook. Checks are read-only and run only
+  while the jailbreak is active.
+- Jailbreak app repair uses targeted `uicache -p` registration. A stale entry
+  is unregistered only when its path matches a randomized RootHide
+  `.jbroot-<16 hex>` application path.
+- Real user-app paths, non-RootHide registrations, duplicate jailbreak Bundle
+  IDs, invalid Info.plists, and other ambiguous states block automatic repair.
+- Sileo and Zebra are checked independently against dpkg status, their exact
+  app bundle and Bundle ID, and LaunchServices registration. A bundled deb is
+  installed only when that manager's package or app bundle is missing or
+  invalid; registration-only faults never trigger a reinstall.
+- Safe Mode is reported as injection intentionally disabled. Injection health
+  validates `systemhook-<16 hex>.dylib` for the current `jbrand` and does not
+  attempt to rewrite RootHide core files.
+- LC_RPATH metadata caching is deliberately not included in this stable
+  change.
+
 ## Device validation required
 
 A successful build is not proof of runtime stability. Before publishing, test
 at least: first jailbreak, rejailbreak, userspace reboot, respring, safe mode,
 TrollStore uninstall while unjailbroken, remove-jailbreak through the supported
 toggle workflow, failed exploit retry, and a forced launchd handoff failure.
+For Health, additionally test missing and stale app registration, a real user
+App Bundle ID collision, Sileo-only and Zebra-only installations, an
+unselected manager, and a missing package-manager app bundle.
