@@ -286,8 +286,12 @@
                 [specifiers addObject:actionsGroupSpecifier];
                 
                 if (envManager.isJailbroken) {
-                    PSSpecifier *healthSpecifier = [PSSpecifier preferenceSpecifierNamed:DOLocalizedString(@"Health_Settings_Entry") target:self set:nil get:nil detail:[DORootHideHealthViewController class] cell:PSLinkCell edit:nil];
-                    [healthSpecifier setProperty:@"heart.text.square" forKey:@"iconImageSystem"];
+                    PSSpecifier *healthSpecifier = [PSSpecifier preferenceSpecifierNamed:@"" target:self set:defSetter get:defGetter detail:nil cell:PSStaticTextCell edit:nil];
+                    [healthSpecifier setProperty:@"Health_Settings_Entry" forKey:@"title"];
+                    [healthSpecifier setProperty:[DOButtonCell class] forKey:@"cellClass"];
+                    [healthSpecifier setProperty:buttonHeight forKey:@"height"];
+                    [healthSpecifier setProperty:@"heart.text.square" forKey:@"image"];
+                    [healthSpecifier setProperty:@"openHealthPagePressed" forKey:@"action"];
                     [specifiers addObject:healthSpecifier];
                     
                     PSSpecifier *changeMobilePasswordSpecifier = [PSSpecifier preferenceSpecifierNamed:@"" target:self set:defSetter get:defGetter detail:nil cell:PSStaticTextCell edit:nil];
@@ -646,6 +650,11 @@
 - (void)refreshJailbreakAppsPressed
 {
     [[DOEnvironmentManager sharedManager] refreshJailbreakApps];
+}
+
+- (void)openHealthPagePressed
+{
+    [self.navigationController pushViewController:[[DORootHideHealthViewController alloc] init] animated:YES];
 }
 
 - (void)reinstallPackageManagersPressed
