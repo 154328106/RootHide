@@ -393,15 +393,22 @@ extern int reboot(int howto);
 
 - (void)reboot
 {
+    // 未越狱：当前 app 进程未必是 root（直接 setuid(0) 常失败），reboot syscall 就没权限。
+    // 用 exec_cmd_root（TrollStore 环境可用，delete-bootstrap 等就靠它）以 root 重新拉起自己
+    // 走 "do-reboot" 分支，让 reboot 在真正的 root 进程里执行。
+    if (![self isJailbroken] && [self isInstalledThroughTrollStore]) {
+        uint32_t selfPathSize = PATH_MAX;
+        char selfPath[selfPathSize];
+        _NSGetExecutablePath(selfPath, &selfPathSize);
+        exec_cmd_root(selfPath, "do-reboot", NULL);
+        return;
+    }
     [self runAsRoot:^{
         [self runUnsandboxed:^{
             if ([self isJailbroken]) {
-                // 越狱内核带 reboot patch，认这个特殊 flag
-                reboot3(0x8000000000000000, 0);
+                reboot3(0x8000000000000000, 0);   // 越狱内核的 reboot patch
             } else {
-                // 未越狱（TrollStore + root）：越狱内核 flag 无效，用标准硬重启。
-                // 之前无条件用 reboot3(0x8000...) 在未越狱内核上静默失败，只留下 fadeToBlack 的黑屏。
-                reboot(RB_AUTOBOOT);
+                reboot(RB_AUTOBOOT);              // 兜底
             }
         }];
     }];

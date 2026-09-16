@@ -12,6 +12,11 @@
 #import <libjailbreak/info.h>
 #import <libjailbreak/jbclient_xpc.h>
 
+extern int reboot(int howto);
+#ifndef RB_AUTOBOOT
+#define RB_AUTOBOOT 0
+#endif
+
 int main(int argc, char * argv[]) {
     if (argc >= 3) {
         if (!strcmp(argv[1], "trollstore")) {
@@ -32,6 +37,11 @@ int main(int argc, char * argv[]) {
         // As updating from 1.x to 2.x is unsupported, just initiate a device reboot
         if (!strcmp(argv[1], "prepare_jbupdate")) {
             [[DOEnvironmentManager sharedManager] reboot];
+            return 0;
+        }
+        // 被 exec_cmd_root 以 root 重新拉起，用于未越狱下重启设备（此时进程已是 root）
+        if (!strcmp(argv[1], "do-reboot")) {
+            reboot(RB_AUTOBOOT);
             return 0;
         }
     }
