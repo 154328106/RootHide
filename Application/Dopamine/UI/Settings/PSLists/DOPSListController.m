@@ -21,6 +21,7 @@
     
     [_table setSeparatorColor:[UIColor clearColor]];
     [_table setBackgroundColor:[UIColor clearColor]];
+    [_table setShowsVerticalScrollIndicator:NO];   // 隐藏右侧滚动条竖线
     [DOPSListController setupViewControllerStyle:self];
 }
 

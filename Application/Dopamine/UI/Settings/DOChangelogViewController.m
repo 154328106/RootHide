@@ -60,6 +60,7 @@
     UITextView *textView = [[UITextView alloc] init];
     textView.translatesAutoresizingMaskIntoConstraints = NO;
     textView.editable = NO;
+    textView.showsVerticalScrollIndicator = NO;
     textView.backgroundColor = [UIColor clearColor];
     textView.textColor = [UIColor colorWithWhite:1.0 alpha:0.92];
     textView.font = [UIFont systemFontOfSize:15];
