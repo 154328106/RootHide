@@ -18,25 +18,14 @@
     {
         [self setDelegate:delegate];
         [self setActions:actions];
-        self.backgroundColor = [UIColor colorWithRed:0.22 green:0.52 blue:0.80 alpha:0.20];
+        self.backgroundColor = [UIColor colorWithRed:0.22 green:0.52 blue:0.80 alpha:0.14];
         self.layer.cornerRadius = 28;
         self.layer.masksToBounds = YES;
         self.layer.cornerCurve = kCACornerCurveContinuous;
         self.layer.borderWidth = 1.15;
-        self.layer.borderColor = [UIColor colorWithRed:0.80 green:0.95 blue:1.0 alpha:0.52].CGColor;
+        self.layer.borderColor = [UIColor colorWithRed:0.80 green:0.95 blue:1.0 alpha:0.42].CGColor;
 
-        UIBlurEffect *blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemUltraThinMaterialDark];
-        UIVisualEffectView *blurView = [[UIVisualEffectView alloc] initWithEffect:blurEffect];
-        blurView.userInteractionEnabled = NO;
-        blurView.translatesAutoresizingMaskIntoConstraints = NO;
-        blurView.contentView.backgroundColor = [UIColor colorWithRed:0.26 green:0.60 blue:0.88 alpha:0.16];
-        [self insertSubview:blurView atIndex:0];
-        [NSLayoutConstraint activateConstraints:@[
-            [blurView.leadingAnchor constraintEqualToAnchor:self.leadingAnchor],
-            [blurView.trailingAnchor constraintEqualToAnchor:self.trailingAnchor],
-            [blurView.topAnchor constraintEqualToAnchor:self.topAnchor],
-            [blurView.bottomAnchor constraintEqualToAnchor:self.bottomAnchor],
-        ]];
+        // 去掉 UltraThinMaterialDark 模糊层：它把大框压成了深黑。改用纯色半透明，与顶部两框同风格。
     }
     return self;
 }

@@ -60,8 +60,8 @@
     [NSLayoutConstraint activateConstraints:@[
         [cardView.leadingAnchor constraintEqualToAnchor:self.leadingAnchor constant:12],
         [cardView.trailingAnchor constraintEqualToAnchor:self.trailingAnchor constant:-12],
-        [cardView.topAnchor constraintEqualToAnchor:self.topAnchor constant:4],
-        [cardView.bottomAnchor constraintEqualToAnchor:self.bottomAnchor constant:-4],
+        [cardView.topAnchor constraintEqualToAnchor:self.topAnchor constant:6],
+        [cardView.bottomAnchor constraintEqualToAnchor:self.bottomAnchor constant:-6],
     ]];
 }
 

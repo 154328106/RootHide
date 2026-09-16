@@ -106,7 +106,7 @@
     [stackView addArrangedSubview:headerView];
 
     [NSLayoutConstraint activateConstraints:@[
-        [headerView.leadingAnchor constraintEqualToAnchor:stackView.leadingAnchor constant:5],
+        [headerView.leadingAnchor constraintEqualToAnchor:stackView.leadingAnchor],
         [headerView.trailingAnchor constraintEqualToAnchor:stackView.trailingAnchor]
     ]];
     

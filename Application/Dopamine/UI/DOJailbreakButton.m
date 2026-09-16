@@ -18,7 +18,7 @@
     if (self = [super init])
     {
         self.backgroundColor = [UIColor colorWithRed:0.18 green:0.62 blue:0.96 alpha:0.88];
-        self.layer.cornerRadius = 22;
+        self.layer.cornerRadius = 16;
         self.layer.masksToBounds = YES;
         self.layer.cornerCurve = kCACornerCurveContinuous;
         self.layer.borderWidth = 1.0;
