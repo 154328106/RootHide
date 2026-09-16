@@ -7,6 +7,7 @@
 
 #import "DOCreditsViewController.h"
 #import "DOLicenseViewController.h"
+#import "DOChangelogViewController.h"
 #import "DOUIManager.h"
 #import "DOEnvironmentManager.h"
 #import <Preferences/PSSpecifier.h>
@@ -28,7 +29,7 @@
         _specifiers = [self loadSpecifiersFromPlistName:@"Credits" target:self];
 
         PSSpecifier *headerSpecifier = _specifiers[0];
-        [headerSpecifier setProperty:@"Dopamine 3.0.7 RootHide" forKey:@"title"];
+        [headerSpecifier setProperty:@"Dopamine 3.0.9 RootHide" forKey:@"title"];
     }
     return _specifiers;
 }
@@ -46,6 +47,11 @@
 - (void)openLicense
 {
     [self.navigationController pushViewController:[[DOLicenseViewController alloc] init] animated:YES];
+}
+
+- (void)openChangelog
+{
+    [self.navigationController pushViewController:[[DOChangelogViewController alloc] init] animated:YES];
 }
 
 @end

@@ -60,6 +60,22 @@
 		</dict>
 		<dict>
 			<key>cell</key>
+			<string>PSStaticTextCell</string>
+			<key>cellClass</key>
+			<string>DOButtonCell</string>
+			<key>title</key>
+			<string>更新日志</string>
+			<key>buttonHeight</key>
+			<integer>44</integer>
+			<key>key</key>
+			<string>changelog</string>
+			<key>image</key>
+			<string>clock.arrow.circlepath</string>
+			<key>action</key>
+			<string>openChangelog</string>
+		</dict>
+		<dict>
+			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>headerCellClass</key>
 			<string>DOCreditsCell</string>

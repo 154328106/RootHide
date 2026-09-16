@@ -129,9 +129,20 @@
             UIAlertController *confirmation = [UIAlertController alertControllerWithTitle:DOLocalizedString(@"Menu_Reboot_Device_Title") message:DOLocalizedString(@"Alert_Reboot_Device_Body") preferredStyle:UIAlertControllerStyleAlert];
             [confirmation addAction:[UIAlertAction actionWithTitle:DOLocalizedString(@"Button_Cancel") style:UIAlertActionStyleCancel handler:nil]];
             [confirmation addAction:[UIAlertAction actionWithTitle:DOLocalizedString(@"Button_Reboot") style:UIAlertActionStyleDestructive handler:^(__kindof UIAlertAction * _Nonnull alertAction) {
-                [self fadeToBlack:^{
+                if ([[DOEnvironmentManager sharedManager] isJailbroken]) {
+                    [self fadeToBlack:^{
+                        [[DOEnvironmentManager sharedManager] reboot];
+                    }];
+                } else {
+                    // 未越狱：直接尝试重启，不做不可逆的 fadeToBlack（重启失败会永久黑屏，回不来）。
+                    // 若 2.5 秒后设备还在，说明当前权限下重启没成功，提示手动重启，而不是卡黑屏。
                     [[DOEnvironmentManager sharedManager] reboot];
-                }];
+                    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                        UIAlertController *failAlert = [UIAlertController alertControllerWithTitle:@"无法自动重启" message:@"当前状态下无法自动重启设备，请手动重启（长按电源键 + 任一音量键，滑动关机后再开机）。" preferredStyle:UIAlertControllerStyleAlert];
+                        [failAlert addAction:[UIAlertAction actionWithTitle:@"好的" style:UIAlertActionStyleDefault handler:nil]];
+                        [self presentViewController:failAlert animated:YES completion:nil];
+                    });
+                }
             }]];
             [self presentViewController:confirmation animated:YES completion:nil];
         }],

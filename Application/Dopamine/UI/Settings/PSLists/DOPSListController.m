@@ -27,7 +27,8 @@
     DOTheme *theme = [[DOThemeManager sharedInstance] enabledTheme];
     
     vc.overrideUserInterfaceStyle = UIUserInterfaceStyleDark;
-    vc.view.backgroundColor = theme.windowColor;
+    // 原来用 theme.windowColor（半透明深灰）显得暗；改成首页那种亮蓝半透明，通透一些
+    vc.view.backgroundColor = [UIColor colorWithRed:0.16 green:0.42 blue:0.66 alpha:0.52];
     vc.view.layer.cornerRadius = 16;
     vc.view.layer.masksToBounds = YES;
     vc.view.layer.cornerCurve = kCACornerCurveContinuous;

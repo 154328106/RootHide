@@ -62,8 +62,8 @@
             // 文字：在内小框里再留白（左右 46 / 上下 30）
             [stackView.leadingAnchor constraintEqualToAnchor:self.leadingAnchor constant:48],
             [stackView.trailingAnchor constraintEqualToAnchor:self.trailingAnchor constant:-48],
-            [stackView.topAnchor constraintEqualToAnchor:self.topAnchor constant:30],
-            [stackView.bottomAnchor constraintEqualToAnchor:self.bottomAnchor constant:-30],
+            [stackView.topAnchor constraintEqualToAnchor:self.topAnchor constant:45],
+            [stackView.bottomAnchor constraintEqualToAnchor:self.bottomAnchor constant:-45],
         ]];
 
         // Personal build wordmark. Text scales more cleanly than modifying the
