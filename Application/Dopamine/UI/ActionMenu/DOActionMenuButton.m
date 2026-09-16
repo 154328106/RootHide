@@ -37,8 +37,8 @@
     cardView.layer.borderColor = [UIColor colorWithRed:0.62 green:0.90 blue:1.0 alpha:0.24].CGColor;
     [button insertSubview:cardView atIndex:0];
     [NSLayoutConstraint activateConstraints:@[
-        [cardView.leadingAnchor constraintEqualToAnchor:button.leadingAnchor],
-        [cardView.trailingAnchor constraintEqualToAnchor:button.trailingAnchor],
+        [cardView.leadingAnchor constraintEqualToAnchor:button.leadingAnchor constant:12],
+        [cardView.trailingAnchor constraintEqualToAnchor:button.trailingAnchor constant:-12],
         [cardView.topAnchor constraintEqualToAnchor:button.topAnchor constant:4],
         [cardView.bottomAnchor constraintEqualToAnchor:button.bottomAnchor constant:-4],
     ]];
@@ -52,7 +52,7 @@
         chevronView.tintColor = [UIColor colorWithRed:0.46 green:1.0 blue:0.88 alpha:0.72];
         [button addSubview:chevronView];
         [NSLayoutConstraint activateConstraints:@[
-            [chevronView.trailingAnchor constraintEqualToAnchor:button.trailingAnchor constant:-10],
+            [chevronView.trailingAnchor constraintEqualToAnchor:button.trailingAnchor constant:-22],
             [chevronView.centerYAnchor constraintEqualToAnchor:button.centerYAnchor],
         ]];
     }

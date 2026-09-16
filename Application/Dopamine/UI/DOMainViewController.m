@@ -96,7 +96,7 @@
 
     //Header
     DOHeaderView *headerView = [[DOHeaderView alloc] initWithImage: [UIImage imageNamed:@"Dopamine"] subtitles: @[
-        [DOGlobalAppearance mainSubtitleString:[[DOEnvironmentManager sharedManager] versionSupportString]],
+        [DOGlobalAppearance mainSubtitleString:@"iOS 16 专用"],
     ]];
     self.headerView = headerView;
     [self updateUptimeLabel];

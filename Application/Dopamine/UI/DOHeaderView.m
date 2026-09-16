@@ -25,13 +25,31 @@
         stackView.translatesAutoresizingMaskIntoConstraints = NO;
         stackView.alignment = UIStackViewAlignmentCenter;
 
+        // 顶部标题小框：比 header 区窄一圈（左右各缩 26 = 看起来小一些），文字在框内留白。
+        // 与菜单项小框同一套玻璃风格，形成上下呼应。
+        UIView *cardBg = [[UIView alloc] init];
+        cardBg.translatesAutoresizingMaskIntoConstraints = NO;
+        cardBg.userInteractionEnabled = NO;
+        cardBg.backgroundColor = [UIColor colorWithRed:0.10 green:0.44 blue:0.70 alpha:0.18];
+        cardBg.layer.cornerRadius = 18;
+        cardBg.layer.cornerCurve = kCACornerCurveContinuous;
+        cardBg.layer.borderWidth = 1.0;
+        cardBg.layer.borderColor = [UIColor colorWithRed:0.62 green:0.90 blue:1.0 alpha:0.22].CGColor;
+        [self addSubview:cardBg];
+
         [self addSubview:stackView];
 
         [NSLayoutConstraint activateConstraints:@[
-            [stackView.leadingAnchor constraintEqualToAnchor:self.leadingAnchor],
-            [stackView.trailingAnchor constraintEqualToAnchor:self.trailingAnchor],
-            [stackView.topAnchor constraintEqualToAnchor:self.topAnchor],
-            [stackView.bottomAnchor constraintEqualToAnchor:self.bottomAnchor],
+            // 框：左右内缩 26（窄=小一些），上下贴 header 边
+            [cardBg.leadingAnchor constraintEqualToAnchor:self.leadingAnchor constant:26],
+            [cardBg.trailingAnchor constraintEqualToAnchor:self.trailingAnchor constant:-26],
+            [cardBg.topAnchor constraintEqualToAnchor:self.topAnchor],
+            [cardBg.bottomAnchor constraintEqualToAnchor:self.bottomAnchor],
+            // 文字：在框内再留白（左右 40 / 上下 14）
+            [stackView.leadingAnchor constraintEqualToAnchor:self.leadingAnchor constant:40],
+            [stackView.trailingAnchor constraintEqualToAnchor:self.trailingAnchor constant:-40],
+            [stackView.topAnchor constraintEqualToAnchor:self.topAnchor constant:14],
+            [stackView.bottomAnchor constraintEqualToAnchor:self.bottomAnchor constant:-14],
         ]];
 
         // Personal build wordmark. Text scales more cleanly than modifying the
