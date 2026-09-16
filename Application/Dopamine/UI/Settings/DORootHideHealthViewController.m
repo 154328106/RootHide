@@ -41,7 +41,8 @@
     [header setProperty:DOLocalizedString(@"Health_Title") forKey:@"title"];
     [specifiers addObject:header];
 
-    PSSpecifier *intro = [PSSpecifier groupSpecifierWithHeader:nil footer:DOLocalizedString(@"Health_Intro")];
+    PSSpecifier *intro = [PSSpecifier emptyGroupSpecifier];
+    [intro setProperty:DOLocalizedString(@"Health_Intro") forKey:@"footerText"];
     [specifiers addObject:intro];
 
     if (self.scanInProgress || self.healthItems.count == 0) {
@@ -57,7 +58,9 @@
     else {
         NSNumber *buttonHeight = @(44);
         for (DORootHideHealthItem *item in self.healthItems) {
-            PSSpecifier *group = [PSSpecifier groupSpecifierWithHeader:item.title footer:item.detail];
+            PSSpecifier *group = [PSSpecifier emptyGroupSpecifier];
+            if (item.title) group.name = item.title;
+            if (item.detail) [group setProperty:item.detail forKey:@"footerText"];
             [specifiers addObject:group];
 
             PSSpecifier *status = [PSSpecifier preferenceSpecifierNamed:item.localizedStateTitle
