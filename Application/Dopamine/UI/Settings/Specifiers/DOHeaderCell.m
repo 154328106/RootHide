@@ -17,13 +17,15 @@
         [titleLabel setText:[specifier propertyForKey:@"title"]];
         [titleLabel setFont:[UIFont systemFontOfSize:17 weight:UIFontWeightMedium]];
         [titleLabel setTextColor:[UIColor whiteColor]];
+        titleLabel.textAlignment = NSTextAlignmentCenter;
         titleLabel.translatesAutoresizingMaskIntoConstraints = NO;
         
         [self.contentView addSubview:titleLabel];
 
         [NSLayoutConstraint activateConstraints:@[
             [titleLabel.centerYAnchor constraintEqualToAnchor:self.centerYAnchor constant:-3],
-            [titleLabel.centerXAnchor constraintEqualToAnchor:self.centerXAnchor]
+            [titleLabel.leadingAnchor constraintEqualToAnchor:self.leadingAnchor constant:20],
+            [titleLabel.trailingAnchor constraintEqualToAnchor:self.trailingAnchor constant:-20]
         ]];
 
         UIView *border = [[UIView alloc] init];
