@@ -34,6 +34,8 @@
     vc.view.layer.cornerRadius = 16;
     vc.view.layer.masksToBounds = YES;
     vc.view.layer.cornerCurve = kCACornerCurveContinuous;
+    vc.view.layer.borderWidth = 1.5;   // 整个子页面加外边框，边缘看得清
+    vc.view.layer.borderColor = [UIColor colorWithRed:0.80 green:0.95 blue:1.0 alpha:0.48].CGColor;
     
     if (@available(iOS 19.0, *)) {
         // Apple broke the method below by reimplementing some Preferences.framework classes in SwiftUI 🤮
@@ -50,13 +52,18 @@
     // 开关行等系统 cell 直接浮在亮背景上看不清；给它们垫一层半透明卡片承载。
     // DOButtonCell / DOCreditsCell 自己已经画了卡，跳过。
     if (![cell isKindOfClass:[DOButtonCell class]] && ![cell isKindOfClass:[DOCreditsCell class]]) {
-        UIView *bg = [[UIView alloc] init];
-        bg.backgroundColor = [UIColor colorWithRed:0.10 green:0.30 blue:0.52 alpha:0.42];
-        bg.layer.cornerRadius = 12;
-        bg.layer.cornerCurve = kCACornerCurveContinuous;
-        bg.layer.borderWidth = 1;
-        bg.layer.borderColor = [UIColor colorWithRed:0.72 green:0.92 blue:1.0 alpha:0.30].CGColor;
-        cell.backgroundView = bg;
+        // 卡片内缩到和「移除越狱」按钮同宽（左右各 20），颜色也用同款亮蓝，跟整体合群
+        UIView *container = [[UIView alloc] initWithFrame:cell.bounds];
+        container.backgroundColor = [UIColor clearColor];
+        UIView *card = [[UIView alloc] initWithFrame:CGRectInset(cell.bounds, 20, 3)];
+        card.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+        card.backgroundColor = [UIColor colorWithRed:0.22 green:0.52 blue:0.80 alpha:0.20];
+        card.layer.cornerRadius = 12;
+        card.layer.cornerCurve = kCACornerCurveContinuous;
+        card.layer.borderWidth = 1;
+        card.layer.borderColor = [UIColor colorWithRed:0.78 green:0.94 blue:1.0 alpha:0.42].CGColor;
+        [container addSubview:card];
+        cell.backgroundView = container;
     }
 }
 

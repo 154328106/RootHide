@@ -471,7 +471,8 @@
 
 - (BOOL)actionMenuActionIsEnabled:(UIAction *)action
 {
-    if ([action.identifier isEqualToString:@"respring"] || [action.identifier isEqualToString:@"reboot-userspace"]) {
+    if ([action.identifier isEqualToString:@"respring"] || [action.identifier isEqualToString:@"reboot-userspace"] || [action.identifier isEqualToString:@"reboot-device"]) {
+        // 未越狱下无法可靠重启设备（reboot syscall / root-spawn 都试过均不行），灰掉不可点
         return [[DOEnvironmentManager sharedManager] isJailbroken];
     }
     return YES;
