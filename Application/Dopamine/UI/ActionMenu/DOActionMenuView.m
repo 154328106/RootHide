@@ -64,7 +64,8 @@
     [self.actions enumerateObjectsUsingBlock:^(UIAction *action, NSUInteger idx, BOOL *stop) {
         DOActionMenuButton *button = [DOActionMenuButton buttonWithAction:action chevron:[self.delegate actionMenuShowsChevronForAction:action]];
         button.enabled = [self.delegate actionMenuActionIsEnabled:action];
-        [button setBottomSeparator:idx != self.actions.count - 1];
+        // 已经给每项加了独立小框，不再需要项间分隔线
+        [button setBottomSeparator:NO];
         [self.buttonsView addArrangedSubview:button];
         [NSLayoutConstraint activateConstraints:@[
             [button.heightAnchor constraintEqualToConstant:button_height],
