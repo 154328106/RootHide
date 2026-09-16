@@ -38,8 +38,8 @@
         [self.contentView addSubview:button];
 
         [NSLayoutConstraint activateConstraints:@[
-            [button.leadingAnchor constraintEqualToAnchor:self.leadingAnchor constant:20],
-            [button.trailingAnchor constraintEqualToAnchor:self.trailingAnchor constant:-20],
+            [button.leadingAnchor constraintEqualToAnchor:self.leadingAnchor constant:12],
+            [button.trailingAnchor constraintEqualToAnchor:self.trailingAnchor constant:-12],
             [button.topAnchor constraintEqualToAnchor:self.topAnchor constant:4],
             [button.bottomAnchor constraintEqualToAnchor:self.bottomAnchor constant:-4],
         ]];
