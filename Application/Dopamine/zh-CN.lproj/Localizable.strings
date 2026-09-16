@@ -133,7 +133,7 @@
 
 // RootHide 健康检测
 "Health_Settings_Entry" = "RootHide 健康检测";
-"Health_Title" = "RootHide Health";
+"Health_Title" = "健康监测";
 "Health_Intro" = "检测本身只读。仅在修复路径明确且不存在冲突时显示 Repair，绝不会覆盖真实用户 App。";
 "Health_Status_Checking" = "正在检测…";
 "Health_Status_Healthy" = "正常";

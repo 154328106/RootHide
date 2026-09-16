@@ -33,18 +33,18 @@ static NSString *const DORootHideHealthErrorDomain = @"DORootHideHealthErrorDoma
 {
     switch (self.state) {
         case DORootHideHealthStateHealthy:
-            return [NSString stringWithFormat:@"● %@", DOLocalizedString(@"Health_Status_Healthy")];
+            return [NSString stringWithFormat:@"🟢 %@", DOLocalizedString(@"Health_Status_Healthy")];
         case DORootHideHealthStateWarning:
-            return [NSString stringWithFormat:@"● %@", DOLocalizedString(@"Health_Status_Warning")];
+            return [NSString stringWithFormat:@"🟡 %@", DOLocalizedString(@"Health_Status_Warning")];
         case DORootHideHealthStateRepairable:
-            return [NSString stringWithFormat:@"● %@", DOLocalizedString(@"Health_Status_Repairable")];
+            return [NSString stringWithFormat:@"🟠 %@", DOLocalizedString(@"Health_Status_Repairable")];
         case DORootHideHealthStateConflict:
-            return [NSString stringWithFormat:@"● %@", DOLocalizedString(@"Health_Status_Conflict")];
+            return [NSString stringWithFormat:@"🔴 %@", DOLocalizedString(@"Health_Status_Conflict")];
         case DORootHideHealthStateDisabled:
-            return [NSString stringWithFormat:@"● %@", DOLocalizedString(@"Health_Status_Disabled")];
+            return [NSString stringWithFormat:@"⚪ %@", DOLocalizedString(@"Health_Status_Disabled")];
         case DORootHideHealthStateUnknown:
         default:
-            return [NSString stringWithFormat:@"● %@", DOLocalizedString(@"Health_Status_Unknown")];
+            return [NSString stringWithFormat:@"⚪ %@", DOLocalizedString(@"Health_Status_Unknown")];
     }
 }
 
