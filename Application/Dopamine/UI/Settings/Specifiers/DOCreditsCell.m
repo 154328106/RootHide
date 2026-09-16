@@ -101,14 +101,15 @@
         self.cardView.layer.cornerCurve = kCACornerCurveContinuous;
         self.cardView.layer.masksToBounds = YES;
         self.cardView.layer.borderWidth = 1;
-        self.cardView.layer.borderColor = [UIColor colorWithRed:0.56 green:0.87 blue:1.0 alpha:0.19].CGColor;
+        self.cardView.backgroundColor = [UIColor colorWithRed:0.22 green:0.52 blue:0.80 alpha:0.20];
+        self.cardView.layer.borderColor = [UIColor colorWithRed:0.78 green:0.94 blue:1.0 alpha:0.45].CGColor;
         [self.contentView addSubview:self.cardView];
 
         UIBlurEffect *blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemUltraThinMaterialDark];
         self.cardBlurView = [[UIVisualEffectView alloc] initWithEffect:blurEffect];
         self.cardBlurView.translatesAutoresizingMaskIntoConstraints = NO;
         self.cardBlurView.userInteractionEnabled = NO;
-        self.cardBlurView.alpha = 0.58;
+        self.cardBlurView.alpha = 0.0;  // 去掉暗模糊，避免分组卡发黑
         self.cardBlurView.contentView.backgroundColor = [UIColor colorWithRed:0.16 green:0.55 blue:0.76 alpha:0.035];
         [self.cardView addSubview:self.cardBlurView];
 
