@@ -26,6 +26,7 @@
 @property(nonatomic) BOOL hideHomeIndicator;
 @property(nonatomic) CAGradientLayer *personalGradient;
 @property(nonatomic) DOHeaderView *headerView;
+@property(nonatomic) UIView *jbOuterFrame;
 @property(nonatomic) NSTimer *uptimeTimer;
 
 @end
@@ -163,7 +164,7 @@
     [buttonPlaceHolder setTranslatesAutoresizingMaskIntoConstraints:NO];
     [stackView addArrangedSubview:buttonPlaceHolder];
     [NSLayoutConstraint activateConstraints:@[
-        [buttonPlaceHolder.heightAnchor constraintEqualToConstant:60]
+        [buttonPlaceHolder.heightAnchor constraintEqualToConstant:88]
     ]];
     
     //Jailbreak Button
@@ -197,6 +198,7 @@
 
 
         [actionView hide];
+        [UIView animateWithDuration:0.3 animations:^{ self.jbOuterFrame.alpha = 0; }];
         [self.jailbreakBtn expandButton: self.jailbreakButtonConstraints];
 
         self.updateButton.userInteractionEnabled = NO;
@@ -210,13 +212,32 @@
     }]];
     self.jailbreakBtn.enabled = !isJailbroken && isSupported;
 
+    // 越狱按钮区：外层大框（跟菜单大框/顶部外框同款通透蓝）
+    UIView *jbOuter = [[UIView alloc] init];
+    jbOuter.translatesAutoresizingMaskIntoConstraints = NO;
+    jbOuter.userInteractionEnabled = NO;
+    jbOuter.backgroundColor = [UIColor colorWithRed:0.22 green:0.52 blue:0.80 alpha:0.14];
+    jbOuter.layer.cornerRadius = 28;
+    jbOuter.layer.cornerCurve = kCACornerCurveContinuous;
+    jbOuter.layer.borderWidth = 1.0;
+    jbOuter.layer.borderColor = [UIColor colorWithRed:0.80 green:0.95 blue:1.0 alpha:0.42].CGColor;
+    self.jbOuterFrame = jbOuter;
+    [self.view addSubview:jbOuter];
+    [NSLayoutConstraint activateConstraints:@[
+        [jbOuter.leadingAnchor constraintEqualToAnchor:stackView.leadingAnchor],
+        [jbOuter.trailingAnchor constraintEqualToAnchor:stackView.trailingAnchor],
+        [jbOuter.heightAnchor constraintEqualToAnchor:buttonPlaceHolder.heightAnchor],
+        [jbOuter.centerYAnchor constraintEqualToAnchor:buttonPlaceHolder.centerYAnchor],
+    ]];
+
     [self.view addSubview:self.jailbreakBtn];
 
+    // 越狱按钮本体 = 大框里的小框：内缩 32（与菜单小框同宽）、高 52（与菜单小框同高）
     [NSLayoutConstraint activateConstraints:(self.jailbreakButtonConstraints = @[
-        [self.jailbreakBtn.leadingAnchor constraintEqualToAnchor:stackView.leadingAnchor],
-        [self.jailbreakBtn.trailingAnchor constraintEqualToAnchor:stackView.trailingAnchor],
-        [self.jailbreakBtn.heightAnchor constraintEqualToAnchor:buttonPlaceHolder.heightAnchor],
-        [self.jailbreakBtn.centerYAnchor constraintEqualToAnchor:buttonPlaceHolder.centerYAnchor]
+        [self.jailbreakBtn.leadingAnchor constraintEqualToAnchor:jbOuter.leadingAnchor constant:32],
+        [self.jailbreakBtn.trailingAnchor constraintEqualToAnchor:jbOuter.trailingAnchor constant:-32],
+        [self.jailbreakBtn.heightAnchor constraintEqualToConstant:52],
+        [self.jailbreakBtn.centerYAnchor constraintEqualToAnchor:jbOuter.centerYAnchor]
     ])];
 
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.1 * NSEC_PER_SEC), dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0), ^{
