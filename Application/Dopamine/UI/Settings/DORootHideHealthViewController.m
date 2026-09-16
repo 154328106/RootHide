@@ -9,6 +9,10 @@
 #import "DOHeaderCell.h"
 #import "DOUIManager.h"
 
+@interface PSListController (DOHealthPrivate)
+- (PSSpecifier *)specifierAtIndexPath:(NSIndexPath *)indexPath;
+@end
+
 @interface DORootHideHealthViewController ()
 @property (nonatomic, copy) NSArray<DORootHideHealthItem *> *healthItems;
 @property (nonatomic) BOOL scanInProgress;
