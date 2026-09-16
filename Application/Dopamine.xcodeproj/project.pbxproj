@@ -43,6 +43,7 @@
 		04C246B12B74B05800E17924 /* DOPkgManagerPickerView.m in Sources */ = {isa = PBXBuildFile; fileRef = 04C246B02B74B05800E17924 /* DOPkgManagerPickerView.m */; };
 		04C246B32B74B65900E17924 /* PkgManagers.plist in Resources */ = {isa = PBXBuildFile; fileRef = 04C246B22B74B65900E17924 /* PkgManagers.plist */; };
 		04DD0B352B7BA38C0055DE4F /* DOLicenseViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 04DD0B342B7BA38C0055DE4F /* DOLicenseViewController.m */; };
+		DE01DE01DE01DE01DE010003 /* DOChangelogViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = DE01DE01DE01DE01DE010002 /* DOChangelogViewController.m */; };
 		04DD0B372B7BA6180055DE4F /* LICENSE.md in Resources */ = {isa = PBXBuildFile; fileRef = 04DD0B362B7BA6180055DE4F /* LICENSE.md */; };
 		04DD0B3A2B7BF3E80055DE4F /* LICENSE_libc.md in Resources */ = {isa = PBXBuildFile; fileRef = 04DD0B392B7BF3E80055DE4F /* LICENSE_libc.md */; };
 		04DD0B3D2B7C88210055DE4F /* DOLogCrashViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 04DD0B3C2B7C88210055DE4F /* DOLogCrashViewController.m */; };
@@ -369,6 +370,8 @@
 		04C246B22B74B65900E17924 /* PkgManagers.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = PkgManagers.plist; sourceTree = "<group>"; };
 		04DD0B332B7BA38C0055DE4F /* DOLicenseViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DOLicenseViewController.h; sourceTree = "<group>"; };
 		04DD0B342B7BA38C0055DE4F /* DOLicenseViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = DOLicenseViewController.m; sourceTree = "<group>"; };
+		DE01DE01DE01DE01DE010001 /* DOChangelogViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DOChangelogViewController.h; sourceTree = "<group>"; };
+		DE01DE01DE01DE01DE010002 /* DOChangelogViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = DOChangelogViewController.m; sourceTree = "<group>"; };
 		04DD0B362B7BA6180055DE4F /* LICENSE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = LICENSE.md; sourceTree = "<group>"; };
 		04DD0B392B7BF3E80055DE4F /* LICENSE_libc.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = LICENSE_libc.md; sourceTree = "<group>"; };
 		04DD0B3B2B7C88210055DE4F /* DOLogCrashViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DOLogCrashViewController.h; sourceTree = "<group>"; };
@@ -661,6 +664,8 @@
 				A16000012F00000100000006 /* DORootHideHealthViewController.m */,
 				04DD0B332B7BA38C0055DE4F /* DOLicenseViewController.h */,
 				04DD0B342B7BA38C0055DE4F /* DOLicenseViewController.m */,
+				DE01DE01DE01DE01DE010001 /* DOChangelogViewController.h */,
+				DE01DE01DE01DE01DE010002 /* DOChangelogViewController.m */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -1722,6 +1727,7 @@
 				042479AD2B66916B0082581B /* DOHeaderView.m in Sources */,
 				042479AB2B66916B0082581B /* DOModalTransitionScale.m in Sources */,
 				04DD0B352B7BA38C0055DE4F /* DOLicenseViewController.m in Sources */,
+				DE01DE01DE01DE01DE010003 /* DOChangelogViewController.m in Sources */,
 				042479AA2B66916B0082581B /* DOModalTransitionPush.m in Sources */,
 				0443A9B12B79D9C10014C933 /* DOPSListItemsController.m in Sources */,
 				8C71982B2ABF0E84003C6658 /* main.m in Sources */,
