@@ -31,6 +31,10 @@
 #import <LocalAuthentication/LocalAuthentication.h>
 
 int reboot3(uint64_t flags, ...);
+extern int reboot(int howto);
+#ifndef RB_AUTOBOOT
+#define RB_AUTOBOOT 0
+#endif
 
 @implementation DOEnvironmentManager
 
@@ -391,7 +395,14 @@ int reboot3(uint64_t flags, ...);
 {
     [self runAsRoot:^{
         [self runUnsandboxed:^{
-            reboot3(0x8000000000000000, 0);
+            if ([self isJailbroken]) {
+                // 越狱内核带 reboot patch，认这个特殊 flag
+                reboot3(0x8000000000000000, 0);
+            } else {
+                // 未越狱（TrollStore + root）：越狱内核 flag 无效，用标准硬重启。
+                // 之前无条件用 reboot3(0x8000...) 在未越狱内核上静默失败，只留下 fadeToBlack 的黑屏。
+                reboot(RB_AUTOBOOT);
+            }
         }];
     }];
 }
