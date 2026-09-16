@@ -25,24 +25,6 @@
     // 标题居中（原来是靠左）；图标跟标题一起居中
     [button setContentHorizontalAlignment:UIControlContentHorizontalAlignmentCenter];
 
-    // 每个菜单项各自套一个小框（大框里的小框）：内缩 4pt，相邻两项之间自然留 8pt 缝，
-    // 比外层大框亮一点点 + 一圈淡青描边，形成「大框套小框」的层次感。
-    UIView *cardView = [[UIView alloc] init];
-    cardView.translatesAutoresizingMaskIntoConstraints = NO;
-    cardView.userInteractionEnabled = NO;
-    cardView.backgroundColor = [UIColor colorWithRed:0.10 green:0.44 blue:0.70 alpha:0.22];
-    cardView.layer.cornerRadius = 16;
-    cardView.layer.cornerCurve = kCACornerCurveContinuous;
-    cardView.layer.borderWidth = 1.0;
-    cardView.layer.borderColor = [UIColor colorWithRed:0.62 green:0.90 blue:1.0 alpha:0.24].CGColor;
-    [button insertSubview:cardView atIndex:0];
-    [NSLayoutConstraint activateConstraints:@[
-        [cardView.leadingAnchor constraintEqualToAnchor:button.leadingAnchor constant:12],
-        [cardView.trailingAnchor constraintEqualToAnchor:button.trailingAnchor constant:-12],
-        [cardView.topAnchor constraintEqualToAnchor:button.topAnchor constant:4],
-        [cardView.bottomAnchor constraintEqualToAnchor:button.bottomAnchor constant:-4],
-    ]];
-
     if (chevron)
     {
         UIImage *chevronImage = [UIImage systemImageNamed:@"chevron.right"];
@@ -61,6 +43,26 @@
     [button addTarget:button action:@selector(buttonPressed) forControlEvents:UIControlEventTouchUpInside];
 
     return button;
+}
+
+-(void)addInnerCard
+{
+    // 菜单项小框：横向内缩 12（比大框短一圈），上下内缩 4；提亮的通透蓝 + 淡青描边。
+    UIView *cardView = [[UIView alloc] init];
+    cardView.translatesAutoresizingMaskIntoConstraints = NO;
+    cardView.userInteractionEnabled = NO;
+    cardView.backgroundColor = [UIColor colorWithRed:0.30 green:0.62 blue:0.92 alpha:0.28];
+    cardView.layer.cornerRadius = 16;
+    cardView.layer.cornerCurve = kCACornerCurveContinuous;
+    cardView.layer.borderWidth = 1.0;
+    cardView.layer.borderColor = [UIColor colorWithRed:0.78 green:0.95 blue:1.0 alpha:0.45].CGColor;
+    [self insertSubview:cardView atIndex:0];
+    [NSLayoutConstraint activateConstraints:@[
+        [cardView.leadingAnchor constraintEqualToAnchor:self.leadingAnchor constant:12],
+        [cardView.trailingAnchor constraintEqualToAnchor:self.trailingAnchor constant:-12],
+        [cardView.topAnchor constraintEqualToAnchor:self.topAnchor constant:4],
+        [cardView.bottomAnchor constraintEqualToAnchor:self.bottomAnchor constant:-4],
+    ]];
 }
 
 -(void)buttonPressed

@@ -15,6 +15,9 @@ NS_ASSUME_NONNULL_BEGIN
 
 +(DOActionMenuButton*)buttonWithAction:(UIAction *)action chevron:(BOOL)chevron;
 
+// 给菜单项套一层内缩小框；越狱按钮/更新按钮不调用它，避免多套一层
+-(void)addInnerCard;
+
 @end
 
 NS_ASSUME_NONNULL_END

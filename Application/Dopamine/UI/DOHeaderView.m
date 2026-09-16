@@ -25,31 +25,45 @@
         stackView.translatesAutoresizingMaskIntoConstraints = NO;
         stackView.alignment = UIStackViewAlignmentCenter;
 
-        // 顶部标题小框：比 header 区窄一圈（左右各缩 26 = 看起来小一些），文字在框内留白。
-        // 与菜单项小框同一套玻璃风格，形成上下呼应。
+        // 顶部：外大框 + 内小框（双层），文字在内小框里。提亮的通透蓝。
+        UIView *outerBg = [[UIView alloc] init];
+        outerBg.translatesAutoresizingMaskIntoConstraints = NO;
+        outerBg.userInteractionEnabled = NO;
+        outerBg.backgroundColor = [UIColor colorWithRed:0.22 green:0.52 blue:0.80 alpha:0.14];
+        outerBg.layer.cornerRadius = 26;
+        outerBg.layer.cornerCurve = kCACornerCurveContinuous;
+        outerBg.layer.borderWidth = 1.0;
+        outerBg.layer.borderColor = [UIColor colorWithRed:0.80 green:0.95 blue:1.0 alpha:0.42].CGColor;
+        [self addSubview:outerBg];
+
         UIView *cardBg = [[UIView alloc] init];
         cardBg.translatesAutoresizingMaskIntoConstraints = NO;
         cardBg.userInteractionEnabled = NO;
-        cardBg.backgroundColor = [UIColor colorWithRed:0.10 green:0.44 blue:0.70 alpha:0.18];
+        cardBg.backgroundColor = [UIColor colorWithRed:0.30 green:0.62 blue:0.92 alpha:0.24];
         cardBg.layer.cornerRadius = 18;
         cardBg.layer.cornerCurve = kCACornerCurveContinuous;
         cardBg.layer.borderWidth = 1.0;
-        cardBg.layer.borderColor = [UIColor colorWithRed:0.62 green:0.90 blue:1.0 alpha:0.22].CGColor;
+        cardBg.layer.borderColor = [UIColor colorWithRed:0.80 green:0.96 blue:1.0 alpha:0.48].CGColor;
         [self addSubview:cardBg];
 
         [self addSubview:stackView];
 
         [NSLayoutConstraint activateConstraints:@[
-            // 框：左右内缩 26（窄=小一些），上下贴 header 边
-            [cardBg.leadingAnchor constraintEqualToAnchor:self.leadingAnchor constant:26],
-            [cardBg.trailingAnchor constraintEqualToAnchor:self.trailingAnchor constant:-26],
-            [cardBg.topAnchor constraintEqualToAnchor:self.topAnchor],
-            [cardBg.bottomAnchor constraintEqualToAnchor:self.bottomAnchor],
-            // 文字：在框内再留白（左右 40 / 上下 14）
-            [stackView.leadingAnchor constraintEqualToAnchor:self.leadingAnchor constant:40],
-            [stackView.trailingAnchor constraintEqualToAnchor:self.trailingAnchor constant:-40],
-            [stackView.topAnchor constraintEqualToAnchor:self.topAnchor constant:14],
-            [stackView.bottomAnchor constraintEqualToAnchor:self.bottomAnchor constant:-14],
+            // 外大框：贴 header 边（左右各缩 6）
+            [outerBg.leadingAnchor constraintEqualToAnchor:self.leadingAnchor constant:6],
+            [outerBg.trailingAnchor constraintEqualToAnchor:self.trailingAnchor constant:-6],
+            [outerBg.topAnchor constraintEqualToAnchor:self.topAnchor],
+            [outerBg.bottomAnchor constraintEqualToAnchor:self.bottomAnchor],
+            // 内小框：在外框内留白（左右 30 / 上下 16）
+            [cardBg.leadingAnchor constraintEqualToAnchor:self.leadingAnchor constant:30],
+            [cardBg.trailingAnchor constraintEqualToAnchor:self.trailingAnchor constant:-30],
+            [cardBg.topAnchor constraintEqualToAnchor:self.topAnchor constant:16],
+            [cardBg.bottomAnchor constraintEqualToAnchor:self.bottomAnchor constant:-16],
+            // 文字：在内小框里再留白（左右 46 / 上下 30）
+            [stackView.leadingAnchor constraintEqualToAnchor:self.leadingAnchor constant:46],
+            [stackView.trailingAnchor constraintEqualToAnchor:self.trailingAnchor constant:-46],
+            [stackView.topAnchor constraintEqualToAnchor:self.topAnchor constant:30],
+            [stackView.bottomAnchor constraintEqualToAnchor:self.bottomAnchor constant:-30],
         ]];
 
         // Personal build wordmark. Text scales more cleanly than modifying the

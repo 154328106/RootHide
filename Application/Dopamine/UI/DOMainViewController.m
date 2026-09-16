@@ -37,9 +37,9 @@
 
     self.personalGradient = [CAGradientLayer layer];
     self.personalGradient.colors = @[
-        (id)[UIColor colorWithRed:0.025 green:0.075 blue:0.16 alpha:1.0].CGColor,
-        (id)[UIColor colorWithRed:0.055 green:0.38 blue:0.48 alpha:0.96].CGColor,
-        (id)[UIColor colorWithRed:0.12 green:0.10 blue:0.30 alpha:1.0].CGColor,
+        (id)[UIColor colorWithRed:0.09 green:0.28 blue:0.48 alpha:0.98].CGColor,
+        (id)[UIColor colorWithRed:0.17 green:0.50 blue:0.72 alpha:0.88].CGColor,
+        (id)[UIColor colorWithRed:0.11 green:0.32 blue:0.56 alpha:0.98].CGColor,
     ];
     self.personalGradient.locations = @[@0.0, @0.48, @1.0];
     self.personalGradient.startPoint = CGPointMake(0.0, 0.0);
