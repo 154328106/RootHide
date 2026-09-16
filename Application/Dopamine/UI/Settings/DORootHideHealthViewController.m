@@ -23,12 +23,36 @@
     self.scanInProgress = YES;
     [super viewDidLoad];
     self.title = DOLocalizedString(@"Health_Title");
+    self.navigationItem.largeTitleDisplayMode = UINavigationItemLargeTitleDisplayModeNever;
     self.refreshButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemRefresh
                                                                       target:self
                                                                       action:@selector(refreshPressed)];
     self.refreshButton.enabled = NO;
     self.navigationItem.rightBarButtonItem = self.refreshButton;
     [self performHealthScan];
+}
+
++ (UIColor *)colorForHealthState:(DORootHideHealthState)state
+{
+    switch (state) {
+        case DORootHideHealthStateHealthy:    return [UIColor colorWithRed:0.36 green:0.70 blue:0.47 alpha:1.0]; // 暗一点的绿，不刺眼
+        case DORootHideHealthStateWarning:    return [UIColor colorWithRed:0.85 green:0.68 blue:0.32 alpha:1.0]; // 暗黄
+        case DORootHideHealthStateRepairable: return [UIColor colorWithRed:0.86 green:0.56 blue:0.32 alpha:1.0]; // 暗橙
+        case DORootHideHealthStateConflict:   return [UIColor colorWithRed:0.85 green:0.44 blue:0.44 alpha:1.0]; // 暗红
+        case DORootHideHealthStateDisabled:
+        case DORootHideHealthStateUnknown:
+        default:                              return [UIColor colorWithWhite:0.72 alpha:1.0];                   // 灰
+    }
+}
+
+- (void)tableView:(UITableView *)tableView willDisplayCell:(UITableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    [super tableView:tableView willDisplayCell:cell forRowAtIndexPath:indexPath];
+    PSSpecifier *specifier = [self specifierAtIndexPath:indexPath];
+    NSNumber *stateNum = [specifier propertyForKey:@"healthState"];
+    if (stateNum && cell.textLabel) {
+        cell.textLabel.textColor = [DORootHideHealthViewController colorForHealthState:(DORootHideHealthState)stateNum.intValue];
+    }
 }
 
 - (NSArray *)specifiers
@@ -70,6 +94,7 @@
                                                                   detail:nil
                                                                     cell:PSStaticTextCell
                                                                     edit:nil];
+            [status setProperty:@(item.state) forKey:@"healthState"];
             [specifiers addObject:status];
 
             if (item.canRepair) {
