@@ -105,7 +105,13 @@
 - (void)performHealthScan
 {
     dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
-        NSArray<DORootHideHealthItem *> *items = [[DORootHideHealthManager sharedManager] scanHealth];
+        NSArray<DORootHideHealthItem *> *items = nil;
+        @try {
+            items = [[DORootHideHealthManager sharedManager] scanHealth];
+        } @catch (NSException *exception) {
+            NSLog(@"[Health] scan exception: %@", exception);
+            items = @[];
+        }
         dispatch_async(dispatch_get_main_queue(), ^{
             self.healthItems = items;
             self.scanInProgress = NO;
@@ -146,8 +152,15 @@
     self.repairInProgress = YES;
     self.refreshButton.enabled = NO;
     dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
-        NSError *error = [[DORootHideHealthManager sharedManager] repairItemWithIdentifier:identifier];
-        NSArray<DORootHideHealthItem *> *items = [[DORootHideHealthManager sharedManager] scanHealth];
+        NSError *error = nil;
+        NSArray<DORootHideHealthItem *> *items = nil;
+        @try {
+            error = [[DORootHideHealthManager sharedManager] repairItemWithIdentifier:identifier];
+            items = [[DORootHideHealthManager sharedManager] scanHealth];
+        } @catch (NSException *exception) {
+            NSLog(@"[Health] repair exception: %@", exception);
+            items = @[];
+        }
         dispatch_async(dispatch_get_main_queue(), ^{
             self.healthItems = items;
             self.repairInProgress = NO;

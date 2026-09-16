@@ -57,8 +57,8 @@
             // 内小框：在外框内留白（左右 30 / 上下 16）
             [cardBg.leadingAnchor constraintEqualToAnchor:self.leadingAnchor constant:32],
             [cardBg.trailingAnchor constraintEqualToAnchor:self.trailingAnchor constant:-32],
-            [cardBg.topAnchor constraintEqualToAnchor:self.topAnchor constant:16],
-            [cardBg.bottomAnchor constraintEqualToAnchor:self.bottomAnchor constant:-16],
+            [cardBg.topAnchor constraintEqualToAnchor:self.topAnchor constant:32],
+            [cardBg.bottomAnchor constraintEqualToAnchor:self.bottomAnchor constant:-32],
             // 文字：在内小框里再留白（左右 46 / 上下 30）
             [stackView.leadingAnchor constraintEqualToAnchor:self.leadingAnchor constant:48],
             [stackView.trailingAnchor constraintEqualToAnchor:self.trailingAnchor constant:-48],
